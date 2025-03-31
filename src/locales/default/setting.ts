@@ -445,6 +445,7 @@ export default {
       placeholder: '请输入自定义提示词',
       title: '自定义提示词',
     },
+    helpInfo: '当创建新助手时，将以默认助手设置作为预设值。',
     historyCompress: {
       label: '会话历史模型',
       modelDesc: '指定用于压缩会话历史的模型',
