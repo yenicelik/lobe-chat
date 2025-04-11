@@ -37,8 +37,8 @@ export const InstalledPluginList = memo(() => {
             onChange={(e) => setKeywords(e.target.value)}
             placeholder={t('store.placeholder')}
             style={{ flex: 1, width: '100%' }}
-            type={'block'}
             value={keywords}
+            variant={'filled'}
           />
         </Flexbox>
         <AddPluginButton />

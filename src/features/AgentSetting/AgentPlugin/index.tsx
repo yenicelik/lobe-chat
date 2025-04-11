@@ -1,6 +1,6 @@
 'use client';
 
-import { Avatar, Form, Icon, ItemGroup, Tooltip } from '@lobehub/ui';
+import { Avatar, Form, type FormGroupItemType, Icon, Tooltip } from '@lobehub/ui';
 import { Button, Empty, Space, Switch, Tag, Typography } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { LucideTrash2, Store } from 'lucide-react';
@@ -148,7 +148,7 @@ const AgentPlugin = memo(() => {
     </Center>
   );
 
-  const plugin: ItemGroup = {
+  const plugin: FormGroupItemType = {
     children: isLoading ? loadingSkeleton : isEmpty ? empty : [...deprecatedList, ...list],
     extra,
     title: t('settingPlugin.title'),
@@ -157,7 +157,7 @@ const AgentPlugin = memo(() => {
   return (
     <>
       <PluginStore open={showStore} setOpen={setShowStore} />
-      <Form items={[plugin]} itemsType={'group'} variant={'pure'} {...FORM_STYLE} />
+      <Form items={[plugin]} itemsType={'group'} variant={'borderless'} {...FORM_STYLE} />
     </>
   );
 });

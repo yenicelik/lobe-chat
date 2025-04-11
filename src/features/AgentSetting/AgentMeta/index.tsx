@@ -1,6 +1,6 @@
 'use client';
 
-import { Form, type FormItemProps, Icon, type ItemGroup, Tooltip } from '@lobehub/ui';
+import { Form, type FormGroupItemType, type FormItemProps, Icon, Tooltip } from '@lobehub/ui';
 import { GradientButton } from '@lobehub/ui/awesome';
 import isEqual from 'fast-deep-equal';
 import { isString } from 'lodash-es';
@@ -78,7 +78,7 @@ const AgentMeta = memo(() => {
     };
   });
 
-  const metaData: ItemGroup = {
+  const metaData: FormGroupItemType = {
     children: [
       {
         children: (
@@ -148,7 +148,7 @@ const AgentMeta = memo(() => {
       items={[metaData]}
       itemsType={'group'}
       onFinish={updateMeta}
-      variant={'pure'}
+      variant={'borderless'}
       {...FORM_STYLE}
     />
   );

@@ -47,8 +47,8 @@ const TopicSearchBar = memo<{ onClear?: () => void }>(({ onClear }) => {
       onPressEnter={startSearchTopic}
       placeholder={t('searchPlaceholder')}
       spotlight={!mobile}
-      type={'block'}
       value={tempValue}
+      variant={'filled'}
     />
   );
 });

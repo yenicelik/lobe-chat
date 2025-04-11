@@ -50,8 +50,8 @@ export const OnlineList = memo(() => {
             allowClear
             onChange={(e) => setKeywords(e.target.value)}
             placeholder={t('store.placeholder')}
-            type={'block'}
             value={keywords}
+            variant={'filled'}
           />
         </Flexbox>
         <AddPluginButton />
@@ -62,7 +62,7 @@ export const OnlineList = memo(() => {
         <Center gap={12} padding={40}>
           {error ? (
             <>
-              <Icon icon={ServerCrash} size={{ fontSize: 80 }} />
+              <Icon icon={ServerCrash} size={80} />
               {t('store.networkError')}
             </>
           ) : (

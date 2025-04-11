@@ -34,7 +34,7 @@ const ProviderMenu = memo(({ mobile }: ProviderMenuProps) => {
         style={{
           borderRadius: theme.borderRadius,
         }}
-        variant={'block'}
+        variant={'filled'}
       />
       <AgentCategory setTab={setTab} tab={tab} />
     </Flexbox>

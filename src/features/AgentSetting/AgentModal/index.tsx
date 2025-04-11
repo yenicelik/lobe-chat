@@ -1,6 +1,6 @@
 'use client';
 
-import { Form, ItemGroup, SliderWithInput } from '@lobehub/ui';
+import { Form, type FormGroupItemType, SliderWithInput } from '@lobehub/ui';
 import { Select, Switch } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { memo } from 'react';
@@ -20,7 +20,7 @@ const AgentModal = memo(() => {
   const updateConfig = useStore((s) => s.setAgentConfig);
   const providerName = useProviderName(useStore((s) => s.config.provider) as string);
 
-  const model: ItemGroup = {
+  const model: FormGroupItemType = {
     children: [
       {
         children: <ModelSelect />,
@@ -118,7 +118,7 @@ const AgentModal = memo(() => {
       items={[model]}
       itemsType={'group'}
       onFinish={updateConfig}
-      variant={'pure'}
+      variant={'borderless'}
       {...FORM_STYLE}
     />
   );

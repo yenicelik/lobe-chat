@@ -50,8 +50,8 @@ const Layout = memo(({ children, mobile }: ProviderMenuProps) => {
           onChange={(e) => useAiInfraStore.setState({ providerSearchKeyword: e.target.value })}
           placeholder={t('menu.searchProviders')}
           style={{ width: '100%' }}
-          type={'block'}
           value={providerSearchKeyword}
+          variant={'filled'}
         />
         <AddNew />
       </Flexbox>

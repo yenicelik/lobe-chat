@@ -1,7 +1,7 @@
 'use client';
 
 import { VoiceList } from '@lobehub/tts';
-import { Form, ItemGroup } from '@lobehub/ui';
+import { Form, type FormGroupItemType } from '@lobehub/ui';
 import { Select, Switch } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { Mic } from 'lucide-react';
@@ -34,7 +34,7 @@ const AgentTTS = memo(() => {
     [config.showAllLocaleVoice],
   );
 
-  const tts: ItemGroup = {
+  const tts: FormGroupItemType = {
     children: [
       {
         children: <Select options={ttsOptions} />,
@@ -111,7 +111,7 @@ const AgentTTS = memo(() => {
       items={[tts]}
       itemsType={'group'}
       onFinish={updateConfig}
-      variant={'pure'}
+      variant={'borderless'}
       {...FORM_STYLE}
     />
   );

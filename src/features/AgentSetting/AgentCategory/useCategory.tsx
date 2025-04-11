@@ -15,7 +15,7 @@ interface UseCategoryOptions {
 
 export const useCategory = ({ mobile }: UseCategoryOptions = {}) => {
   const { t } = useTranslation('setting');
-  const iconSize = mobile ? { fontSize: 20 } : undefined;
+  const iconSize = mobile ? 20 : undefined;
   const id = useSessionStore((s) => s.activeId);
   const isInbox = id === INBOX_SESSION_ID;
   const { enablePlugins } = useServerConfigStore(featureFlagsSelectors);

@@ -15,13 +15,13 @@ const AgentCategory = memo<CategoryContentProps>(({ setTab, tab }) => {
   const cateItems = useCategory();
   return (
     <Menu
+      compact
       items={cateItems}
       onClick={({ key }) => {
         setTab(key as ChatSettingsTabs);
       }}
       selectable
       selectedKeys={[tab as any]}
-      variant={'compact'}
     />
   );
 });

@@ -30,7 +30,7 @@ const AutoGenerateAvatar = memo<AutoGenerateAvatarProps>(
       <Flexbox padding={8}>
         <div style={{ opacity: loading ? 0.6 : undefined }}>
           <EmojiPicker
-            backgroundColor={background || theme.colorFillTertiary}
+            background={background || theme.colorFillTertiary}
             locale={locale}
             onChange={onChange}
             size={64}
@@ -41,7 +41,7 @@ const AutoGenerateAvatar = memo<AutoGenerateAvatarProps>(
           />
         </div>
         <ActionIcon
-          disable={!canAutoGenerate}
+          disabled={!canAutoGenerate}
           glass
           icon={Wand2}
           loading={loading}
@@ -53,7 +53,7 @@ const AutoGenerateAvatar = memo<AutoGenerateAvatarProps>(
             position: 'absolute',
           }}
           title={!canAutoGenerate ? t('autoGenerateTooltipDisabled') : t('autoGenerate')}
-          variant={'block'}
+          variant={'filled'}
         />
       </Flexbox>
     );

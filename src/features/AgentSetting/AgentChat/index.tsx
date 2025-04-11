@@ -1,6 +1,6 @@
 'use client';
 
-import { Form, ItemGroup, SelectWithImg, SliderWithInput } from '@lobehub/ui';
+import { Form, type FormGroupItemType, ImageSelect, SliderWithInput } from '@lobehub/ui';
 import { Input, Switch } from 'antd';
 import { useThemeMode } from 'antd-style';
 import isEqual from 'fast-deep-equal';
@@ -22,11 +22,11 @@ const AgentChat = memo(() => {
 
   console.log(config);
 
-  const chat: ItemGroup = {
+  const chat: FormGroupItemType = {
     children: [
       {
         children: (
-          <SelectWithImg
+          <ImageSelect
             height={86}
             options={[
               {
@@ -116,7 +116,7 @@ const AgentChat = memo(() => {
       items={[chat]}
       itemsType={'group'}
       onFinish={updateConfig}
-      variant={'pure'}
+      variant={'borderless'}
       {...FORM_STYLE}
     />
   );

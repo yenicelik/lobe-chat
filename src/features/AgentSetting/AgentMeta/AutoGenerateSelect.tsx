@@ -23,7 +23,7 @@ const AutoGenerateSelect = memo<AutoGenerateInputProps>(
         suffixIcon={
           onGenerate && (
             <ActionIcon
-              disable={!canAutoGenerate}
+              disabled={!canAutoGenerate}
               icon={Wand2}
               loading={loading}
               onClick={onGenerate}
@@ -32,7 +32,7 @@ const AutoGenerateSelect = memo<AutoGenerateInputProps>(
                 marginRight: -4,
               }}
               title={!canAutoGenerate ? t('autoGenerateTooltipDisabled') : t('autoGenerate')}
-              variant={'block'}
+              variant={'filled'}
             />
           )
         }

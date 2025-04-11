@@ -1,5 +1,4 @@
-import { ColorSwatches, ColorSwatchesProps } from '@lobehub/ui';
-import { useTheme } from 'antd-style';
+import { ColorSwatches, ColorSwatchesProps, primaryColors } from '@lobehub/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,62 +11,61 @@ interface BackgroundSwatchesProps
 
 const BackgroundSwatches = memo<BackgroundSwatchesProps>(
   ({ defaultValue = DEFAULT_BACKGROUND_COLOR, value, onChange, onValuesChange }) => {
-    const theme = useTheme();
     const { t } = useTranslation('color');
     return (
       <ColorSwatches
         colors={[
           {
             color: 'rgba(0, 0, 0, 0)',
-            label: t('default'),
+            title: t('default'),
           },
           {
-            color: theme.red,
-            label: t('red'),
+            color: primaryColors.red,
+            title: t('red'),
           },
           {
-            color: theme.orange,
-            label: t('orange'),
+            color: primaryColors.orange,
+            title: t('orange'),
           },
           {
-            color: theme.gold,
-            label: t('gold'),
+            color: primaryColors.gold,
+            title: t('gold'),
           },
           {
-            color: theme.yellow,
-            label: t('yellow'),
+            color: primaryColors.yellow,
+            title: t('yellow'),
           },
           {
-            color: theme.lime,
-            label: t('lime'),
+            color: primaryColors.lime,
+            title: t('lime'),
           },
           {
-            color: theme.green,
-            label: t('green'),
+            color: primaryColors.green,
+            title: t('green'),
           },
           {
-            color: theme.cyan,
-            label: t('cyan'),
+            color: primaryColors.cyan,
+            title: t('cyan'),
           },
           {
-            color: theme.blue,
-            label: t('blue'),
+            color: primaryColors.blue,
+            title: t('blue'),
           },
           {
-            color: theme.geekblue,
-            label: t('geekblue'),
+            color: primaryColors.geekblue,
+            title: t('geekblue'),
           },
           {
-            color: theme.purple,
-            label: t('purple'),
+            color: primaryColors.purple,
+            title: t('purple'),
           },
           {
-            color: theme.magenta,
-            label: t('magenta'),
+            color: primaryColors.magenta,
+            title: t('magenta'),
           },
           {
-            color: theme.volcano,
-            label: t('volcano'),
+            color: primaryColors.volcano,
+            title: t('volcano'),
           },
         ]}
         defaultValue={defaultValue}

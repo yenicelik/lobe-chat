@@ -44,7 +44,7 @@ const Failed = memo<FailedProps>(({ error, state, setUpgradeStatus, setError, up
           {!!error && (
             <Alert
               extra={
-                <Highlighter copyButtonSize={'small'} language={'json'}>
+                <Highlighter actionIconSize={'small'} language={'json'}>
                   {JSON.stringify(error)}
                 </Highlighter>
               }

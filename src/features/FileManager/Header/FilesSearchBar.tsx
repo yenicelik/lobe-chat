@@ -31,8 +31,8 @@ const FilesSearchBar = memo<{ mobile?: boolean }>(({ mobile }) => {
       shortKey={hotkey}
       spotlight={!mobile}
       style={{ width: 320 }}
-      type={'block'}
       value={keywords}
+      variant={'filled'}
     />
   );
 });

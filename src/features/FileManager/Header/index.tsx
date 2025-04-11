@@ -27,7 +27,6 @@ const Header = memo<{ knowledgeBaseId?: string }>(({ knowledgeBaseId }) => {
               showFilePanel: !showFilePanel,
             });
           }}
-          size={'site'}
         />
         <FilesSearchBar />
       </Flexbox>

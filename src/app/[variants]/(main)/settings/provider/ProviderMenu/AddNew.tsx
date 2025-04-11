@@ -17,7 +17,7 @@ const AddNewProvider = () => {
         icon={PlusIcon}
         onClick={() => setOpen(true)}
         title={t('menu.addCustomProvider')}
-        variant={'block'}
+        variant={'filled'}
       />
       <CreateNewProvider onClose={() => setOpen(false)} open={open} />
     </>
