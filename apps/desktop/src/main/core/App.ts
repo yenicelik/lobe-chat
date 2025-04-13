@@ -13,6 +13,7 @@ import BrowserManager from './BrowserManager';
 import { I18nManager } from './I18nManager';
 import { IoCContainer } from './IoCContainer';
 import MenuManager from './MenuManager';
+import { NetworkInterceptor } from './NetworkInterceptor';
 import { ShortcutManager } from './ShortcutManager';
 import { StoreManager } from './StoreManager';
 import { UpdaterManager } from './UpdaterManager';
@@ -33,6 +34,7 @@ export class App {
   storeManager: StoreManager;
   updaterManager: UpdaterManager;
   shortcutManager: ShortcutManager;
+  networkInterceptor: NetworkInterceptor;
 
   /**
    * whether app is in quiting
@@ -64,6 +66,7 @@ export class App {
     this.menuManager = new MenuManager(this);
     this.updaterManager = new UpdaterManager(this);
     this.shortcutManager = new ShortcutManager(this);
+    this.networkInterceptor = new NetworkInterceptor(this);
 
     // register the schema to interceptor url
     // it should register before app ready
@@ -81,6 +84,9 @@ export class App {
     await this.ipcServer.start();
 
     await app.whenReady();
+
+    // 初始化网络拦截器
+    this.networkInterceptor.initialize();
 
     // 初始化 i18n. PS: app.getLocale() 必须在 app.whenReady() 之后调用才能拿到正确的值
     await this.i18n.init();
@@ -115,6 +121,10 @@ export class App {
 
   getService<T>(serviceClass: Class<T>): T {
     return this.services.get(serviceClass);
+  }
+
+  getController<T>(controllerClass: Class<T>): T {
+    return this.controllers.get(controllerClass);
   }
 
   private onActivate = () => {
