@@ -1,61 +1,58 @@
-import { ActionIcon, Form, Input } from '@lobehub/ui';
-import { Button, Popover } from 'antd';
-import { CloudCogIcon } from 'lucide-react';
+import { ActionIcon, Input } from '@lobehub/ui';
+import { Button, Form, Popover } from 'antd';
+import { Wifi, WifiOffIcon } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
+import useSWR from 'swr';
 
 import { remoteServerService } from '@/services/electron/remoteServer';
 
-/**
- * 同步按钮组件
- * 用于配置远程服务器连接
- */
 const Sync = memo(() => {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('electron');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
-  const [serverStatus, setServerStatus] = useState<{
+  const [localStatus, setLocalStatus] = useState<{
     error?: boolean;
     isActive?: boolean;
     message?: string;
-  }>({});
+  } | null>(null);
 
-  // 获取远程服务器配置
-  const fetchRemoteServerConfig = useCallback(async () => {
-    try {
-      const config = await remoteServerService.getRemoteServerConfig();
-      setServerUrl(config.remoteServerUrl || '');
-      setServerStatus({
-        error: false,
-        isActive: config.isRemoteServerActive,
-        message: config.isRemoteServerActive
-          ? t('remoteServer.statusConnected', '已连接')
-          : t('remoteServer.statusDisconnected', '未连接'),
-      });
-      return config;
-    } catch (error) {
-      console.error('获取远程服务器配置失败:', error);
-      setServerStatus({
-        error: true,
-        isActive: false,
-        message: t('remoteServer.fetchError', '获取配置失败'),
-      });
-      return { isRemoteServerActive: false, remoteServerUrl: '' };
-    }
-  }, [t]);
-
-  // 打开弹窗时获取配置
-  const handleOpenChange = useCallback(
-    async (visible: boolean) => {
-      setOpen(visible);
-      if (visible) {
-        await fetchRemoteServerConfig();
+  // 使用useSWR获取远程服务器配置
+  const { data: serverConfig, mutate: refreshServerConfig } = useSWR(
+    'electron:getRemoteServerConfig',
+    async () => {
+      try {
+        return await remoteServerService.getRemoteServerConfig();
+      } catch (error) {
+        console.error('获取远程服务器配置失败:', error);
+        throw error;
       }
     },
-    [fetchRemoteServerConfig],
+    {
+      onSuccess: (data) => {
+        setServerUrl(data.remoteServerUrl || '');
+        setLocalStatus(null); // 清除本地状态
+      },
+    },
   );
+
+  // 服务器状态（优先使用本地状态，然后使用从服务器获取的状态）
+  const serverStatus = localStatus || {
+    error: !serverConfig,
+    isActive: serverConfig?.isRemoteServerActive,
+    message: serverConfig
+      ? serverConfig.isRemoteServerActive
+        ? t('remoteServer.statusConnected')
+        : t('remoteServer.statusDisconnected')
+      : t('remoteServer.fetchError'),
+  };
+
+  // 打开弹窗时获取配置
+  const handleOpenChange = useCallback((visible: boolean) => {
+    setOpen(visible);
+  }, []);
 
   // 处理表单提交
   const handleSubmit = useCallback(
@@ -77,32 +74,34 @@ const Sync = memo(() => {
 
         if (!result.success) {
           console.error('请求授权失败:', result.error);
-          setServerStatus({
+          setLocalStatus({
             error: true,
             isActive: false,
-            message: t('remoteServer.authError', '授权失败: {{error}}', { error: result.error }),
+            message: t('remoteServer.authError', { error: result.error }),
           });
         } else {
-          setServerStatus({
+          setLocalStatus({
             error: false,
             isActive: false,
-            message: t('remoteServer.authPending', '请在浏览器中完成授权'),
+            message: t('remoteServer.authPending'),
           });
           // 关闭弹窗
           setOpen(false);
         }
+        // 刷新状态
+        refreshServerConfig();
       } catch (error) {
         console.error('远程服务器配置出错:', error);
-        setServerStatus({
+        setLocalStatus({
           error: true,
           isActive: false,
-          message: t('remoteServer.configError', '配置出错'),
+          message: t('remoteServer.configError'),
         });
       } finally {
         setLoading(false);
       }
     },
-    [t],
+    [t, refreshServerConfig],
   );
 
   // 断开连接
@@ -110,36 +109,31 @@ const Sync = memo(() => {
     setLoading(true);
     try {
       await remoteServerService.clearRemoteServerConfig();
-      setServerStatus({
-        error: false,
-        isActive: false,
-        message: t('remoteServer.disconnected', '已断开连接'),
-      });
       // 更新表单URL为空
       setServerUrl('');
+      // 刷新状态
+      refreshServerConfig();
     } catch (error) {
       console.error('断开连接失败:', error);
-      setServerStatus({
+      setLocalStatus({
         error: true,
-        message: t('remoteServer.disconnectError', '断开连接失败'),
+        isActive: false,
+        message: t('remoteServer.disconnectError'),
       });
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [refreshServerConfig, t]);
 
   return (
     <Popover
       content={
         <Flexbox gap={16} padding={16} style={{ width: 300 }}>
           <Flexbox gap={8}>
-            <h3 style={{ margin: 0 }}>{t('remoteServer.configTitle', '配置云同步')}</h3>
-            <p style={{ margin: 0, opacity: 0.6 }}>
-              {t('remoteServer.configDesc', '连接到远程LobeChat服务器，启用数据同步')}
-            </p>
+            <h3 style={{ margin: 0 }}>{t('remoteServer.configTitle')}</h3>
           </Flexbox>
 
-          <Form initialValues={{ serverUrl }} onFinish={handleSubmit}>
+          <Form initialValues={{ serverUrl }} layout={'vertical'} onFinish={handleSubmit}>
             <Form.Item
               extra={
                 serverStatus.message && (
@@ -148,12 +142,12 @@ const Sync = memo(() => {
                   </div>
                 )
               }
-              label={t('remoteServer.serverUrl', '服务器地址')}
+              label={t('remoteServer.serverUrl')}
               name="serverUrl"
               rules={[
-                { message: t('remoteServer.urlRequired', '请输入服务器地址'), required: true },
+                { message: t('remoteServer.urlRequired'), required: true },
                 {
-                  message: t('remoteServer.invalidUrl', '请输入有效的URL地址'),
+                  message: t('remoteServer.invalidUrl'),
                   type: 'url',
                 },
               ]}
@@ -168,14 +162,14 @@ const Sync = memo(() => {
             <Flexbox distribution="space-between" gap={8} horizontal>
               {serverStatus.isActive ? (
                 <Button danger loading={loading} onClick={handleDisconnect}>
-                  {t('remoteServer.disconnect', '断开连接')}
+                  {t('remoteServer.disconnect')}
                 </Button>
               ) : (
                 <Button htmlType="submit" loading={loading} type="primary">
-                  {t('remoteServer.connect', '连接并授权')}
+                  {t('remoteServer.connect')}
                 </Button>
               )}
-              <Button onClick={() => setOpen(false)}>{t('common.cancel', '取消')}</Button>
+              <Button onClick={() => setOpen(false)}>{t('cancel', { ns: 'common' })}</Button>
             </Flexbox>
           </Form>
         </Flexbox>
@@ -186,10 +180,10 @@ const Sync = memo(() => {
       trigger="click"
     >
       <ActionIcon
-        icon={CloudCogIcon}
-        placement={'right'}
-        size="large"
-        title={t('remoteServer.configTitle', '配置云同步')}
+        icon={serverStatus.isActive ? Wifi : WifiOffIcon}
+        placement={'bottomRight'}
+        size="small"
+        title={t('remoteServer.configTitle')}
       />
     </Popover>
   );

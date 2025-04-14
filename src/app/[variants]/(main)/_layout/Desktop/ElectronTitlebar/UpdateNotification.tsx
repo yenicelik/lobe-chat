@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
 
 import { autoUpdateService } from '@/services/electron/autoUpdate';
-import { electronStylish } from '@/styles/electron';
 
 const useStyles = createStyles(({ css, token }) => ({
   container: css`
@@ -127,7 +126,7 @@ export const UpdateNotification: React.FC = () => {
   }
 
   return (
-    <Flexbox className={electronStylish.nodrag}>
+    <Flexbox>
       <Popover
         arrow={false}
         content={
