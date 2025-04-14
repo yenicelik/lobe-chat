@@ -136,28 +136,27 @@ export class App {
    * 在应用准备就绪前调用所有控制器的 beforeAppReady 方法
    */
   private makeAppReady = async () => {
-    const beforeAppReadyPools = Object.values(this.controllers).map(async (controller) => {
+    this.controllers.forEach((controller) => {
       if (typeof controller.beforeAppReady === 'function') {
         try {
-          await controller.beforeAppReady();
-        } catch (error) {
-          console.error(`[App] Error in controller.beforeAppReady:`, error);
-        }
-      }
-    });
-    const afterAppReadyPools = Object.values(this.controllers).map(async (controller) => {
-      if (typeof controller.afterAppReady === 'function') {
-        try {
-          await controller.afterAppReady();
+          controller.beforeAppReady();
         } catch (error) {
           console.error(`[App] Error in controller.beforeAppReady:`, error);
         }
       }
     });
 
-    await Promise.allSettled(beforeAppReadyPools);
     await app.whenReady();
-    await Promise.allSettled(afterAppReadyPools);
+
+    this.controllers.forEach((controller) => {
+      if (typeof controller.afterAppReady === 'function') {
+        try {
+          controller.afterAppReady();
+        } catch (error) {
+          console.error(`[App] Error in controller.beforeAppReady:`, error);
+        }
+      }
+    });
   };
 
   // ============= helper ============= //

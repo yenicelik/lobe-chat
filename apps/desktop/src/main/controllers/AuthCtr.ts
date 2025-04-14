@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, app, shell } from 'electron';
 import crypto from 'node:crypto';
 import querystring from 'node:querystring';
 import { URL } from 'node:url';
@@ -18,15 +18,15 @@ export default class AuthCtr extends ControllerModule {
     return this.app.getController(RemoteServerConfigCtr);
   }
 
-  beforeAppReady() {
-    this.registerProtocolHandler();
-  }
-
   /**
    * 当前的 PKCE 参数
    */
   private codeVerifier: string | null = null;
   private authRequestState: string | null = null;
+
+  beforeAppReady = () => {
+    this.registerProtocolHandler();
+  };
 
   /**
    * 请求 OAuth 授权
@@ -56,9 +56,10 @@ export default class AuthCtr extends ControllerModule {
         client_id: 'lobehub-desktop',
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+        prompt: 'consent',
         redirect_uri: 'com.lobehub.desktop://auth/callback',
         response_type: 'code',
-        scope: 'profile offline_access sync:read sync:write',
+        scope: 'openid profile email offline_access sync:read sync:write',
         state: this.authRequestState,
       });
 
@@ -70,16 +71,6 @@ export default class AuthCtr extends ControllerModule {
       console.error('请求授权失败:', error);
       return { error: error.message, success: false };
     }
-  }
-
-  /**
-   * 注册自定义协议处理
-   */
-  private registerProtocolHandler() {
-    // 处理自定义协议回调
-    // 实际上这个应该通过 app.setAsDefaultProtocolClient 和 app.on('open-url') 注册
-    // 但这个函数需要在App.ts的启动流程中调用
-    console.log('已注册 auth/callback 自定义协议处理');
   }
 
   /**
@@ -144,65 +135,6 @@ export default class AuthCtr extends ControllerModule {
   }
 
   /**
-   * 交换授权码获取令牌
-   */
-  private async exchangeCodeForToken(serverUrl: string, code: string, codeVerifier: string) {
-    try {
-      const tokenUrl = new URL('/oauth/token', serverUrl);
-
-      // 构造请求体
-      const body = querystring.stringify({
-        client_id: 'lobe-chat-desktop',
-        code,
-        code_verifier: codeVerifier,
-        grant_type: 'authorization_code',
-        redirect_uri: 'lobe-chat-desktop://auth/callback',
-      });
-
-      // 发送请求获取令牌
-      const response = await fetch(tokenUrl.toString(), {
-        body,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        // 尝试解析错误响应
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `获取令牌失败: ${response.status} ${response.statusText} ${
-            errorData.error_description || errorData.error || ''
-          }`,
-        );
-      }
-
-      // 解析响应
-      const data = await response.json();
-
-      // 确保响应包含必要的字段
-      if (!data.access_token || !data.refresh_token) {
-        throw new Error('Invalid token response: missing required fields');
-      }
-
-      // 保存令牌
-      await this.remoteServerConfigCtr.saveTokens(data.access_token, data.refresh_token);
-
-      // 设置服务器为激活状态
-      await this.remoteServerConfigCtr.setRemoteServerConfig({
-        isRemoteServerActive: true,
-        remoteServerUrl: serverUrl,
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error('交换授权码失败:', error);
-      return { error: error.message, success: false };
-    }
-  }
-
-  /**
    * 刷新访问令牌
    */
   @ipcClientEvent('refreshAccessToken')
@@ -230,11 +162,11 @@ export default class AuthCtr extends ControllerModule {
       }
 
       // 构造刷新请求
-      const tokenUrl = new URL('/oauth/token', config.remoteServerUrl);
+      const tokenUrl = new URL('/oidc/token', config.remoteServerUrl);
 
       // 构造请求体
       const body = querystring.stringify({
-        client_id: 'lobe-chat-desktop',
+        client_id: 'lobehub-desktop',
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
       });
@@ -295,6 +227,94 @@ export default class AuthCtr extends ControllerModule {
     } finally {
       // 标记为不再刷新
       this.remoteServerConfigCtr.setTokenRefreshing(false);
+    }
+  }
+
+  /**
+   * 注册自定义协议处理
+   */
+  private registerProtocolHandler() {
+    // Windows 和 Linux 上使用 app.setAsDefaultProtocolClient
+    app.setAsDefaultProtocolClient('com.lobehub.desktop');
+
+    // 注册自定义协议处理程序
+    if (process.platform === 'darwin') {
+      // 处理 macOS 上的 open-url 事件
+      app.on('open-url', (event, url) => {
+        event.preventDefault();
+        this.handleAuthCallback(url);
+      });
+    } else {
+      // Windows 和 Linux 上通过 second-instance 事件处理协议回调
+      app.on('second-instance', (event, commandLine) => {
+        // 从命令行参数中找到 URL
+        const url = commandLine.find((arg) => arg.startsWith('com.lobehub.desktop://'));
+        if (url) {
+          this.handleAuthCallback(url);
+        }
+      });
+    }
+
+    console.log('已注册 com.lobehub.desktop:// 自定义协议处理');
+  }
+
+  /**
+   * 交换授权码获取令牌
+   */
+  private async exchangeCodeForToken(serverUrl: string, code: string, codeVerifier: string) {
+    try {
+      const tokenUrl = new URL('/oidc/token', serverUrl);
+
+      // 构造请求体
+      const body = querystring.stringify({
+        client_id: 'lobehub-desktop',
+        code,
+        code_verifier: codeVerifier,
+        grant_type: 'authorization_code',
+        redirect_uri: 'com.lobehub.desktop://auth/callback',
+      });
+
+      // 发送请求获取令牌
+      const response = await fetch(tokenUrl.toString(), {
+        body,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        // 尝试解析错误响应
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `获取令牌失败: ${response.status} ${response.statusText} ${
+            errorData.error_description || errorData.error || ''
+          }`,
+        );
+      }
+
+      // 解析响应
+      const data = await response.json();
+
+      console.log(data);
+      // 确保响应包含必要的字段
+      if (!data.access_token || !data.refresh_token) {
+        throw new Error('Invalid token response: missing required fields');
+      }
+
+      // 保存令牌
+      await this.remoteServerConfigCtr.saveTokens(data.access_token, data.refresh_token);
+
+      // 设置服务器为激活状态
+      await this.remoteServerConfigCtr.setRemoteServerConfig({
+        isRemoteServerActive: true,
+        remoteServerUrl: serverUrl,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('交换授权码失败:', error);
+      return { error: error.message, success: false };
     }
   }
 

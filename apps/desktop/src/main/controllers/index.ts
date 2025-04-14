@@ -44,13 +44,15 @@ const shortcutDecorator = (name: string) => (target: any, methodName: string, de
  */
 export const shortcut = (method: ShortcutActionType) => shortcutDecorator(method);
 
-export class ControllerModule {
+interface IControllerModule {
+  afterAppReady?(): void;
+  app: App;
+  beforeAppReady?(): void;
+}
+export class ControllerModule implements IControllerModule {
   constructor(public app: App) {
     this.app = app;
   }
-
-  beforeAppReady?(): void {}
-  afterAppReady?(): void {}
 }
 
 export type IControlModule = typeof ControllerModule;
