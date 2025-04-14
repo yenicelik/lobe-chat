@@ -2,69 +2,82 @@ import Store from 'electron-store';
 
 import { STORE_DEFAULTS, STORE_NAME } from '@/const/store';
 import { ElectronMainStore, StoreKey } from '@/types/store';
+import { createLogger } from '@/utils/logger';
 
 import { App } from './App';
 
+// Create logger
+const logger = createLogger('core:StoreManager');
+
 /**
- * 应用配置存储管理类
+ * Application configuration storage manager
  */
 export class StoreManager {
   /**
-   * 全局配置存储实例
+   * Global configuration store instance
    */
   private store: Store<ElectronMainStore>;
   private app: App;
 
   constructor(app: App) {
+    logger.debug('Initializing StoreManager');
     this.app = app;
     this.store = new Store<ElectronMainStore>({
       defaults: STORE_DEFAULTS,
       name: STORE_NAME,
     });
+    logger.info('StoreManager initialized with store name:', STORE_NAME);
   }
 
   /**
-   * 获取配置项
-   * @param key 配置键
-   * @param defaultValue 默认值
+   * Get configuration item
+   * @param key Configuration key
+   * @param defaultValue Default value
    */
   get<K extends StoreKey>(key: K, defaultValue?: ElectronMainStore[K]): ElectronMainStore[K] {
+    logger.debug('Getting configuration value for key:', key);
     return this.store.get(key, defaultValue as any);
   }
 
   /**
-   * 设置配置项
-   * @param key 配置键
-   * @param value 配置值
+   * Set configuration item
+   * @param key Configuration key
+   * @param value Configuration value
    */
   set<K extends StoreKey>(key: K, value: ElectronMainStore[K]): void {
+    logger.debug('Setting configuration value for key:', key);
     this.store.set(key, value);
   }
 
   /**
-   * 删除配置项
-   * @param key 配置键
+   * Delete configuration item
+   * @param key Configuration key
    */
   delete(key: StoreKey): void {
+    logger.debug('Deleting configuration key:', key);
     this.store.delete(key);
   }
 
   /**
-   * 清空存储
+   * Clear all storage
    */
   clear(): void {
+    logger.warn('Clearing all store data');
     this.store.clear();
   }
 
   /**
-   * 检查是否存在某个配置项
-   * @param key 配置键
+   * Check if a configuration item exists
+   * @param key Configuration key
    */
   has(key: StoreKey): boolean {
-    return this.store.has(key);
+    const exists = this.store.has(key);
+    logger.debug('Checking if key exists:', key, exists);
+    return exists;
   }
 
   async openInEditor() {
+    logger.info('Opening store in editor');
     await this.store.openInEditor();
   }
 }

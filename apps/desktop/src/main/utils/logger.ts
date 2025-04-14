@@ -9,7 +9,7 @@ electronLog.transports.console.level =
     : 'warn'; // 生产环境只显示警告和错误
 
 // 创建命名空间调试器
-export const createLogger = (namespace) => {
+export const createLogger = (namespace: string) => {
   const debugLogger = debug(namespace);
 
   return {

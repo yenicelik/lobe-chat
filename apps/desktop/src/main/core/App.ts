@@ -7,6 +7,7 @@ import { buildDir, nextStandaloneDir } from '@/const/dir';
 import { isDev } from '@/const/env';
 import { IControlModule } from '@/controllers';
 import { IServiceModule } from '@/services';
+import { createLogger } from '@/utils/logger';
 import { createHandler } from '@/utils/next-electron-rsc';
 
 import BrowserManager from './BrowserManager';
@@ -17,6 +18,9 @@ import { NetworkInterceptor } from './NetworkInterceptor';
 import { ShortcutManager } from './ShortcutManager';
 import { StoreManager } from './StoreManager';
 import { UpdaterManager } from './UpdaterManager';
+
+// Create logger
+const logger = createLogger('core:App');
 
 export type IPCEventMap = Map<string, { controller: any; methodName: string }>;
 export type ShortcutMethodMap = Map<string, () => Promise<void>>;
@@ -42,7 +46,8 @@ export class App {
   isQuiting: boolean = false;
 
   constructor() {
-    // 初始化存储管理器
+    logger.debug('Initializing App');
+    // Initialize store manager
     this.storeManager = new StoreManager(this);
 
     // load controllers
@@ -50,6 +55,7 @@ export class App {
       (import.meta as any).glob('@/controllers/*Ctr.ts', { eager: true }),
     );
 
+    logger.debug(`Loading ${controllers.length} controllers`);
     controllers.forEach((controller) => this.addController(controller));
 
     // load services
@@ -57,6 +63,7 @@ export class App {
       (import.meta as any).glob('@/services/*Srv.ts', { eager: true }),
     );
 
+    logger.debug(`Loading ${services.length} services`);
     services.forEach((service) => this.addService(service));
 
     this.initializeIPCEvents();
@@ -71,53 +78,62 @@ export class App {
     // register the schema to interceptor url
     // it should register before app ready
     this.registerNextHandler();
+    logger.info('App initialization completed');
   }
 
   bootstrap = async () => {
+    logger.info('Bootstrapping application');
     // make single instance
     const isSingle = app.requestSingleInstanceLock();
-    if (!isSingle) app.exit(0);
+    if (!isSingle) {
+      logger.info('Another instance is already running, exiting');
+      app.exit(0);
+    }
 
     this.initDevBranding();
 
     //  ==============
     await this.ipcServer.start();
+    logger.debug('IPC server started');
 
-    // 初始化 app
+    // Initialize app
     await this.makeAppReady();
 
-    // 初始化网络拦截器
+    // Initialize network interceptor
     this.networkInterceptor.initialize();
 
-    // 初始化 i18n. PS: app.getLocale() 必须在 app.whenReady() 之后调用才能拿到正确的值
+    // Initialize i18n. Note: app.getLocale() must be called after app.whenReady() to get the correct value
     await this.i18n.init();
     this.menuManager.initialize();
 
-    // 初始化全局快捷键: globalShortcut  必须在 app.whenReady() 之后调用
+    // Initialize global shortcuts: globalShortcut must be called after app.whenReady()
     this.shortcutManager.initialize();
 
     this.browserManager.initializeBrowsers();
 
-    // 初始化更新管理器
+    // Initialize updater manager
     await this.updaterManager.initialize();
 
-    // 添加全局应用退出状态
+    // Set global application exit state
     this.isQuiting = false;
 
-    // 监听 before-quit 事件，设置退出标志
+    // Listen for before-quit event, set exit flag
     app.on('before-quit', () => {
+      logger.info('Application is about to quit');
       this.isQuiting = true;
-      // 在应用退出前注销所有快捷键
+      // Unregister all shortcuts before application exits
       this.shortcutManager.unregisterAll();
     });
 
     app.on('window-all-closed', () => {
       if (windows()) {
+        logger.info('All windows closed, quitting application (Windows)');
         app.quit();
       }
     });
 
     app.on('activate', this.onActivate);
+    logger.info('Application bootstrap completed');
   };
 
   getService<T>(serviceClass: Class<T>): T {
@@ -129,34 +145,41 @@ export class App {
   }
 
   private onActivate = () => {
+    logger.debug('Application activated');
     this.browserManager.showMainWindow();
   };
 
   /**
-   * 在应用准备就绪前调用所有控制器的 beforeAppReady 方法
+   * Call beforeAppReady method on all controllers before the application is ready
    */
   private makeAppReady = async () => {
+    logger.debug('Preparing application ready state');
     this.controllers.forEach((controller) => {
       if (typeof controller.beforeAppReady === 'function') {
         try {
           controller.beforeAppReady();
         } catch (error) {
+          logger.error(`Error in controller.beforeAppReady:`, error);
           console.error(`[App] Error in controller.beforeAppReady:`, error);
         }
       }
     });
 
+    logger.debug('Waiting for app to be ready');
     await app.whenReady();
+    logger.debug('Application ready');
 
     this.controllers.forEach((controller) => {
       if (typeof controller.afterAppReady === 'function') {
         try {
           controller.afterAppReady();
         } catch (error) {
+          logger.error(`Error in controller.afterAppReady:`, error);
           console.error(`[App] Error in controller.beforeAppReady:`, error);
         }
       }
     });
+    logger.info('Application ready state completed');
   };
 
   // ============= helper ============= //
@@ -172,7 +195,7 @@ export class App {
 
   private ipcServer: ElectronIPCServer;
   /**
-   * webview 层 dispatch 来的事件表
+   * events dispatched from webview layer
    */
   private ipcClientEventMap: IPCEventMap = new Map();
   private ipcServerEventMap: IPCEventMap = new Map();
@@ -189,7 +212,7 @@ export class App {
 
     IoCContainer.controllers.get(ControllerClass)?.forEach((event) => {
       if (event.mode === 'client') {
-        // 将 event 装饰器中的对象全部存到 ipcClientEventMap 中
+        // Store all objects from event decorator in ipcClientEventMap
         this.ipcClientEventMap.set(event.name, {
           controller,
           methodName: event.methodName,
@@ -197,7 +220,7 @@ export class App {
       }
 
       if (event.mode === 'server') {
-        // 将 event 装饰器中的对象全部存到 ipcServerEventMap 中
+        // Store all objects from event decorator in ipcServerEventMap
         this.ipcServerEventMap.set(event.name, {
           controller,
           methodName: event.methodName,
@@ -220,6 +243,7 @@ export class App {
   private initDevBranding = () => {
     if (!isDev) return;
 
+    logger.debug('Setting up dev branding');
     app.setName('LobeHub Dev');
     if (macOS()) {
       app.dock!.setIcon(join(buildDir, 'icon-dev.png'));
@@ -227,21 +251,23 @@ export class App {
   };
 
   private registerNextHandler() {
+    logger.debug('Registering Next.js handler');
     const handler = createHandler({
       debug: true,
       localhostUrl: this.nextServerUrl,
       protocol,
       standaloneDir: nextStandaloneDir,
     });
-    console.log(
-      `[APP] Server Debugging Enabled, ${this.nextServerUrl} will be intercepted to ${nextStandaloneDir}`,
+    logger.info(
+      `Server Debugging Enabled, ${this.nextServerUrl} will be intercepted to ${nextStandaloneDir}`,
     );
 
     this.nextInterceptor = handler.createInterceptor;
   }
 
   private initializeIPCEvents() {
-    // 批量注册 controller 中 client event 事件 供 render 端消费
+    logger.debug('Initializing IPC events');
+    // Register batch controller client events for render side consumption
     this.ipcClientEventMap.forEach((eventInfo, key) => {
       const { controller, methodName } = eventInfo;
 
@@ -249,6 +275,7 @@ export class App {
         try {
           return await controller[methodName](...data);
         } catch (error) {
+          logger.error(`Error handling IPC event ${key}:`, error);
           return { error: error.message };
         }
       });

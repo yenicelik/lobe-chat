@@ -3,8 +3,12 @@ import { autoUpdater } from 'electron-updater';
 
 import { isDev } from '@/const/env';
 import { UPDATE_CHANNEL as channel, updaterConfig } from '@/modules/updater/configs';
+import { createLogger } from '@/utils/logger';
 
 import type { App as AppCore } from './App';
+
+// Create logger
+const logger = createLogger('core:UpdaterManager');
 
 export class UpdaterManager {
   private app: AppCore;
@@ -28,55 +32,59 @@ export class UpdaterManager {
   }
 
   public initialize = async () => {
-    // 如果是禁用了更新且为生产环境，不初始化更新
-    if (!updaterConfig.enableAppUpdate && !isDev) return;
+    logger.debug('Initializing UpdaterManager');
+    // If updates are disabled and in production environment, don't initialize updates
+    if (!updaterConfig.enableAppUpdate && !isDev) {
+      logger.info('App updates are disabled, skipping updater initialization');
+      return;
+    }
 
-    // 配置 autoUpdater
-    autoUpdater.autoDownload = false; // 设置为false，我们将手动控制下载
+    // Configure autoUpdater
+    autoUpdater.autoDownload = false; // Set to false, we'll control downloads manually
     autoUpdater.autoInstallOnAppQuit = false;
 
     autoUpdater.channel = channel;
     autoUpdater.allowPrerelease = channel !== 'stable';
 
-    // 开发环境时启用测试模式
+    // Enable test mode in development environment
     if (isDev) {
-      log.info(
-        `[Updater] Running in dev mode, forcing update check, channel: ${autoUpdater.channel}`,
-      );
-      // 开发环境下允许测试更新
+      logger.info(`Running in dev mode, forcing update check, channel: ${autoUpdater.channel}`);
+      // Allow testing updates in development environment
       autoUpdater.forceDevUpdateConfig = true;
     }
 
-    // 注册事件
+    // Register events
     this.registerEvents();
 
-    // 如果配置了自动检查更新，则设置定时检查
+    // If auto-check for updates is configured, set up periodic checks
     if (updaterConfig.app.autoCheckUpdate) {
-      // 启动后延迟 1 分钟检查更新，避免启动时网络可能不稳定
+      // Delay update check by 1 minute after startup to avoid network instability
       setTimeout(() => this.checkForUpdates(false), 60 * 1000);
 
-      // 设置定期检查
+      // Set up periodic checks
       setInterval(() => this.checkForUpdates(false), updaterConfig.app.checkUpdateInterval);
     }
 
-    // 在 initialize 的开头也打印一下 channel 和 allowPrerelease 的最终值
-    log.debug(
-      `[Updater] Initializing with channel: ${autoUpdater.channel}, allowPrerelease: ${autoUpdater.allowPrerelease}`,
+    // Log the channel and allowPrerelease values
+    logger.debug(
+      `Initialized with channel: ${autoUpdater.channel}, allowPrerelease: ${autoUpdater.allowPrerelease}`,
     );
+
+    logger.info('UpdaterManager initialization completed');
   };
 
   /**
-   * 检查更新
-   * @param manual 是否为手动检查更新
+   * Check for updates
+   * @param manual whether this is a manual check for updates
    */
   public checkForUpdates = async (manual: boolean = true) => {
     if (this.checking || this.downloading) return;
 
     this.checking = true;
     this.isManualCheck = manual;
-    log.info(`[Updater] ${manual ? 'Manually checking' : 'Auto checking'} for update...`);
+    logger.info(`${manual ? 'Manually checking' : 'Auto checking'} for updates...`);
 
-    // 如果是手动检查，通知渲染进程开始检查更新
+    // If manual check, notify renderer process about check start
     if (manual) {
       this.mainWindow.broadcast('updateCheckStart');
     }
@@ -84,9 +92,9 @@ export class UpdaterManager {
     try {
       await autoUpdater.checkForUpdates();
     } catch (error) {
-      log.error('[Updater] Error checking for updates:', error.message);
+      logger.error('Error checking for updates:', error.message);
 
-      // 如果是手动检查，通知渲染进程检查更新出错
+      // If manual check, notify renderer process about check error
       if (manual) {
         this.mainWindow.broadcast('updateError', (error as Error).message);
       }
@@ -96,16 +104,16 @@ export class UpdaterManager {
   };
 
   /**
-   * 下载更新
-   * @param manual 是否为手动下载更新
+   * Download update
+   * @param manual whether this is a manual download
    */
   public downloadUpdate = async (manual: boolean = false) => {
     if (this.downloading || !this.updateAvailable) return;
 
     this.downloading = true;
-    log.info(`[Updater] ${manual ? 'Manually downloading' : 'Auto downloading'} update...`);
+    logger.info(`${manual ? 'Manually downloading' : 'Auto downloading'} update...`);
 
-    // 如果是手动下载，通知渲染进程开始下载更新
+    // If manual download or manual check, notify renderer process about download start
     if (manual || this.isManualCheck) {
       this.mainWindow.broadcast('updateDownloadStart');
     }
@@ -114,9 +122,9 @@ export class UpdaterManager {
       await autoUpdater.downloadUpdate();
     } catch (error) {
       this.downloading = false;
-      log.error('[Updater] Error downloading update:', error);
+      logger.error('Error downloading update:', error);
 
-      // 如果是手动下载或手动检查，通知渲染进程下载更新出错
+      // If manual download or manual check, notify renderer process about download error
       if (manual || this.isManualCheck) {
         this.mainWindow.broadcast('updateError', (error as Error).message);
       }
@@ -124,131 +132,131 @@ export class UpdaterManager {
   };
 
   /**
-   * 立即安装更新
+   * Install update immediately
    */
   public installNow = () => {
-    log.info('[Updater] Installing update now...');
+    logger.info('Installing update now...');
 
-    // 标记应用需要退出
+    // Mark application for exit
     this.app.isQuiting = true;
 
-    // 延迟 1 秒后安装更新，确保窗口已关闭
+    // Delay installation by 1 second to ensure window is closed
     setTimeout(() => {
       autoUpdater.quitAndInstall(false, true);
     }, 1000);
   };
 
   /**
-   * 下次启动时安装更新
+   * Install update on next launch
    */
   public installLater = () => {
-    log.info('[Updater] Update will be installed on next restart');
+    logger.info('Update will be installed on next restart');
 
-    // 标记下次启动时安装，但不退出应用
+    // Mark for installation on next launch, but don't exit application
     autoUpdater.autoInstallOnAppQuit = true;
 
-    // 通知渲染进程更新将在下次启动时安装
+    // Notify renderer process that update will be installed on next launch
     this.mainWindow.broadcast('updateWillInstallLater');
   };
 
   /**
-   * 测试模式：模拟有可用更新
-   * 仅在开发环境中使用
+   * Test mode: Simulate update available
+   * Only for use in development environment
    */
   public simulateUpdateAvailable = () => {
     if (!isDev) return;
 
-    log.info('[Updater] Simulating update available...');
+    logger.info('Simulating update available...');
 
     const mainWindow = this.mainWindow;
-    // 模拟一个新版本更新
+    // Simulate a new version update
     const mockUpdateInfo = {
       releaseDate: new Date().toISOString(),
-      releaseNotes: ` #### 版本 1.0.0 更新内容
-- 新增了一些非常棒的功能
-- 修复了一些影响使用的 bug
-- 优化了应用的整体性能
-- 更新了依赖库版本
+      releaseNotes: ` #### Version 1.0.0 Release Notes
+- Added some great new features
+- Fixed bugs affecting usability
+- Optimized overall application performance
+- Updated dependency libraries
 `,
       version: '1.0.0',
     };
 
-    // 设置更新可用状态
+    // Set update available state
     this.updateAvailable = true;
 
-    // 通知渲染进程
+    // Notify renderer process
     if (this.isManualCheck) {
       mainWindow.broadcast('updateAvailable', mockUpdateInfo);
     } else {
-      // 自动检查模式下，直接模拟下载
+      // In auto-check mode, directly simulate download
       this.simulateDownloadProgress();
     }
   };
 
   /**
-   * 测试模式：模拟更新已下载
-   * 仅在开发环境中使用
+   * Test mode: Simulate update downloaded
+   * Only for use in development environment
    */
   public simulateUpdateDownloaded = () => {
     if (!isDev) return;
 
-    log.info('[Updater] Simulating update downloaded...');
+    logger.info('Simulating update downloaded...');
 
     const mainWindow = this.app.browserManager.getMainWindow();
     if (mainWindow) {
-      // 模拟一个新版本更新
+      // Simulate a new version update
       const mockUpdateInfo = {
         releaseDate: new Date().toISOString(),
-        releaseNotes: ` #### 版本 1.0.0 更新内容
-- 新增了一些非常棒的功能
-- 修复了一些影响使用的 bug
-- 优化了应用的整体性能
-- 更新了依赖库版本
+        releaseNotes: ` #### Version 1.0.0 Release Notes
+- Added some great new features
+- Fixed bugs affecting usability
+- Optimized overall application performance
+- Updated dependency libraries
 `,
         version: '1.0.0',
       };
 
-      // 设置下载状态
+      // Set download state
       this.downloading = false;
 
-      // 通知渲染进程
+      // Notify renderer process
       mainWindow.broadcast('updateDownloaded', mockUpdateInfo);
     }
   };
 
   /**
-   * 测试模式：模拟更新下载进度
-   * 仅在开发环境中使用
+   * Test mode: Simulate update download progress
+   * Only for use in development environment
    */
   public simulateDownloadProgress = () => {
     if (!isDev) return;
 
-    log.info('[Updater] Simulating download progress...');
+    logger.info('Simulating download progress...');
 
     const mainWindow = this.app.browserManager.getMainWindow();
 
-    // 设置下载状态
+    // Set download state
     this.downloading = true;
 
-    // 如果是手动检查更新，才广播下载开始事件
+    // Only broadcast download start event if manual check
     if (this.isManualCheck) {
       mainWindow.broadcast('updateDownloadStart');
     }
 
-    // 模拟进度更新
+    // Simulate progress updates
     let progress = 0;
     const interval = setInterval(() => {
       progress += 10;
 
       if (
-        progress <= 100 && // 只有在手动检查更新时，才广播下载进度
+        progress <= 100 && // Only broadcast download progress if manual check
         this.isManualCheck
       ) {
         mainWindow.broadcast('updateDownloadProgress', {
           bytesPerSecond: 1024 * 1024,
           percent: progress, // 1MB/s
           total: 1024 * 1024 * 100, // 100MB
-          transferred: 1024 * 1024 * progress,
+          transferred: 1024 * 1024 * progress, // Progress * 1MB
         });
       }
 
@@ -260,69 +268,51 @@ export class UpdaterManager {
   };
 
   private registerEvents() {
-    // 检查更新事件
+    logger.debug('Registering updater events');
+
     autoUpdater.on('checking-for-update', () => {
-      log.info('[Updater] Checking for update...');
+      logger.info('[Updater] Checking for update...');
     });
 
-    // 发现新版本事件
-    autoUpdater.on('update-available', async (info) => {
-      log.info('[Updater] Update available:', info);
+    autoUpdater.on('update-available', (info) => {
+      logger.info(`Update available: ${info.version}`);
       this.updateAvailable = true;
 
-      const mainWindow = this.mainWindow;
-
-      // 只有在手动检查更新时，才通知渲染进程有更新可用
-      if (mainWindow && this.isManualCheck) {
-        mainWindow.broadcast('updateAvailable', info);
+      if (this.isManualCheck) {
+        this.mainWindow.broadcast('updateAvailable', info);
       }
-
-      // 自动开始下载更新，无论是自动检查还是手动检查
-      // 对于自动检查，将在后台静默下载
-      this.downloadUpdate(this.isManualCheck);
     });
 
-    // 没有更新事件
     autoUpdater.on('update-not-available', (info) => {
-      log.info('[Updater] Update not available:', info);
-      this.updateAvailable = false;
-
-      // 只有在手动检查更新时，才通知渲染进程没有更新
+      logger.info(`Update not available. Current: ${info.version}`);
       if (this.isManualCheck) {
         this.mainWindow.broadcast('updateNotAvailable', info);
       }
     });
 
-    // 更新下载进度事件
+    autoUpdater.on('error', (err) => {
+      logger.error('Error in auto-updater:', err);
+      if (this.isManualCheck) {
+        this.mainWindow.broadcast('updateError', err.message);
+      }
+    });
+
     autoUpdater.on('download-progress', (progressObj) => {
-      // 只有在手动检查更新时，才广播下载进度
+      logger.debug(
+        `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`,
+      );
       if (this.isManualCheck) {
         this.mainWindow.broadcast('updateDownloadProgress', progressObj);
       }
     });
 
-    // 更新下载完成事件
     autoUpdater.on('update-downloaded', (info) => {
-      log.info('[Updater] Update downloaded:', info);
+      logger.info(`Update downloaded: ${info.version}`);
       this.downloading = false;
-
-      // 下载完成后，总是通知渲染进程，无论是自动检查还是手动检查
+      // Always notify about downloaded update
       this.mainWindow.broadcast('updateDownloaded', info);
     });
 
-    // 更新错误事件
-    autoUpdater.on('error', (error, message) => {
-      log.error('[Updater] Error in auto-updater:', error);
-      this.checking = false;
-      this.downloading = false;
-
-      // 只有在手动检查更新时，才通知渲染进程出错
-      if (this.isManualCheck) {
-        const mainWindow = this.app.browserManager.getMainWindow();
-        if (mainWindow) {
-          mainWindow.broadcast('updateError', message || (error as Error).message);
-        }
-      }
-    });
+    logger.debug('Updater events registered');
   }
 }
