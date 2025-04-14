@@ -1,5 +1,5 @@
-import { ActionIcon, Icon } from '@lobehub/ui';
-import { App, Button, Dropdown, Skeleton, Space, Typography } from 'antd';
+import { ActionIcon, Button, Dropdown } from '@lobehub/ui';
+import { App, Skeleton, Space, Typography } from 'antd';
 import { useTheme } from 'antd-style';
 import { CircleX, EllipsisVertical, LucideRefreshCcwDot, PlusIcon } from 'lucide-react';
 import { memo, useState } from 'react';
@@ -107,8 +107,7 @@ const ModelTitle = memo<ModelFetcherProps>(
               <Space.Compact>
                 {showModelFetcher && (
                   <Button
-                    color={'default'}
-                    icon={<Icon icon={LucideRefreshCcwDot} />}
+                    icon={LucideRefreshCcwDot}
                     loading={fetchRemoteModelsLoading}
                     onClick={async () => {
                       setFetchRemoteModelsLoading(true);
@@ -120,7 +119,6 @@ const ModelTitle = memo<ModelFetcherProps>(
                       setFetchRemoteModelsLoading(false);
                     }}
                     size={'small'}
-                    variant={'filled'}
                   >
                     {fetchRemoteModelsLoading
                       ? t('providerModels.list.fetcher.fetching')
@@ -130,13 +128,11 @@ const ModelTitle = memo<ModelFetcherProps>(
                 {showAddNewModel && (
                   <>
                     <Button
-                      color={'default'}
-                      icon={<Icon icon={PlusIcon} />}
+                      icon={PlusIcon}
                       onClick={() => {
                         setShowModal(true);
                       }}
                       size={'small'}
-                      variant={'filled'}
                     />
                     <CreateNewModelModal open={showModal} setOpen={setShowModal} />
                   </>
@@ -161,12 +157,7 @@ const ModelTitle = memo<ModelFetcherProps>(
                     ],
                   }}
                 >
-                  <Button
-                    color={'default'}
-                    icon={<Icon icon={EllipsisVertical} />}
-                    size={'small'}
-                    variant={'filled'}
-                  />
+                  <Button icon={EllipsisVertical} size={'small'} />
                 </Dropdown>
               </Space.Compact>
             </Flexbox>

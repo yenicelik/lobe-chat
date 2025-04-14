@@ -1,7 +1,7 @@
 'use client';
 
-import { Icon } from '@lobehub/ui';
-import { Button, Dropdown, MenuProps, Upload } from 'antd';
+import { Button, Dropdown, Icon, MenuProps } from '@lobehub/ui';
+import { Upload } from 'antd';
 import { css, cx } from 'antd-style';
 import { FileUp, FolderUp, UploadIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -66,9 +66,7 @@ const UploadFileButton = ({ knowledgeBaseId }: { knowledgeBaseId?: string }) => 
   return (
     <>
       <Dropdown menu={{ items }} placement="bottomRight">
-        <Button color={'default'} icon={<Icon icon={UploadIcon} />} variant={'filled'}>
-          {t('header.uploadButton')}
-        </Button>
+        <Button icon={UploadIcon}>{t('header.uploadButton')}</Button>
       </Dropdown>
       <DragUpload
         enabledFiles

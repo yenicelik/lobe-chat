@@ -1,8 +1,8 @@
 'use client';
 
 import { ActionType, ProColumns, ProTable } from '@ant-design/pro-components';
-import { ActionIcon, Icon } from '@lobehub/ui';
-import { App, Button, ButtonProps, Typography } from 'antd';
+import { ActionIcon, Button, ButtonProps, Icon } from '@lobehub/ui';
+import { App, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { DownloadIcon, PlayIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -154,9 +154,7 @@ const EvaluationList = ({ knowledgeBaseId }: { knowledgeBaseId: string }) => {
 
         return (
           <Flexbox gap={4} horizontal>
-            {!actionProps ? null : (
-              <Button color={'default'} variant={'filled'} {...actionProps} size={'small'} />
-            )}
+            {!actionProps ? null : <Button {...actionProps} size={'small'} />}
             <ActionIcon
               icon={Trash2Icon}
               onClick={async () => {

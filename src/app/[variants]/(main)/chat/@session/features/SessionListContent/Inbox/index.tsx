@@ -30,6 +30,15 @@ const Inbox = memo(() => {
         active={activeId === INBOX_SESSION_ID}
         avatar={DEFAULT_INBOX_AVATAR}
         key={INBOX_SESSION_ID}
+        styles={{
+          container: {
+            gap: 12,
+          },
+          content: {
+            gap: 6,
+            maskImage: `linear-gradient(90deg, #000 90%, transparent)`,
+          },
+        }}
         title={t('inbox.title')}
       />
     </Link>

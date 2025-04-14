@@ -1,5 +1,5 @@
-import { Alert, Highlighter, Icon } from '@lobehub/ui';
-import { Button, Result } from 'antd';
+import { Alert, Button, Highlighter, Icon } from '@lobehub/ui';
+import { Result } from 'antd';
 import { ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import React, { memo } from 'react';

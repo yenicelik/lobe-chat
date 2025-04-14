@@ -1,5 +1,4 @@
-import { ActionIcon, Icon } from '@lobehub/ui';
-import { Button, Dropdown, MenuProps } from 'antd';
+import { ActionIcon, Button, Dropdown, type MenuProps } from '@lobehub/ui';
 import { HardDriveDownload } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -51,12 +50,7 @@ export const HeaderContent = memo<{ mobile?: boolean; modal?: boolean }>(({ moda
       {!isServerMode && (
         <Dropdown arrow={false} menu={{ items }} trigger={['click']}>
           {modal ? (
-            <Button
-              block
-              color={'default'}
-              icon={<Icon icon={HardDriveDownload} />}
-              variant={'filled'}
-            >
+            <Button block icon={HardDriveDownload}>
               {t('export', { ns: 'common' })}
             </Button>
           ) : (

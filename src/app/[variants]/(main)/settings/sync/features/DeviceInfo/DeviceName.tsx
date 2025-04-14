@@ -45,16 +45,16 @@ const DeviceName = memo(() => {
       <EditableText
         editing={editing}
         inputProps={{
-          onBlur: (e) => updateDeviceName(e.target.value),
           placeholder: t('sync.device.deviceName.placeholder'),
-          size: 'large',
-          variant: 'filled',
         }}
+        onBlur={(e) => updateDeviceName(e.target.value)}
         onChange={(e) => {
           updateDeviceName(e);
         }}
         onEditingChange={setEditing}
+        size={'large'}
         value={deviceName}
+        variant={'filled'}
       />
     </Flexbox>
   );

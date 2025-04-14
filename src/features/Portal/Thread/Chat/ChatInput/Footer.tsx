@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@lobehub/ui';
 import { createStyles } from 'antd-style';
 import { rgba } from 'polished';
 import { memo } from 'react';
@@ -57,16 +57,14 @@ const Footer = memo<FooterProps>(({ onExpandChange }) => {
       flex={'none'}
       gap={8}
       horizontal
-      padding={'0 24px'}
+      paddingInline={16}
     >
       <div />
       {isAIGenerating ? (
         <Button
           className={styles.loadingButton}
-          color={'default'}
           icon={<StopLoadingIcon />}
           onClick={stopGenerateMessage}
-          variant={'filled'}
         >
           {t('input.stop')}
         </Button>

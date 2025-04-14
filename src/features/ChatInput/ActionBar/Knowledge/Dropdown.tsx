@@ -1,5 +1,4 @@
-import { Icon } from '@lobehub/ui';
-import { Dropdown } from 'antd';
+import { Dropdown, Icon } from '@lobehub/ui';
 import { createStyles } from 'antd-style';
 import type { ItemType } from 'antd/es/menu/interface';
 import isEqual from 'fast-deep-equal';

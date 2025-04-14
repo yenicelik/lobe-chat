@@ -34,7 +34,7 @@ const WelcomeMessage = () => {
       editing={false}
       message={!!meta.description ? agentSystemRoleMsg : agentMsg}
       placement={'left'}
-      type={type === 'chat' ? 'block' : 'pure'}
+      variant={type === 'chat' ? 'bubble' : 'docs'}
     />
   );
 };

@@ -1,5 +1,5 @@
-import { Form, type FormItemProps, Icon, copyToClipboard } from '@lobehub/ui';
-import { App, Button, Switch } from 'antd';
+import { Button, Form, type FormItemProps, copyToClipboard } from '@lobehub/ui';
+import { App, Switch } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { CopyIcon } from 'lucide-react';
 import { memo, useState } from 'react';
@@ -61,7 +61,7 @@ const ShareImage = memo(() => {
     <>
       <Button
         block
-        icon={<Icon icon={CopyIcon} />}
+        icon={CopyIcon}
         onClick={async () => {
           await copyToClipboard(content);
           message.success(t('copySuccess', { defaultValue: 'Copy Success', ns: 'common' }));
@@ -73,12 +73,10 @@ const ShareImage = memo(() => {
       </Button>
       <Button
         block
-        color={'default'}
         onClick={() => {
           exportFile(content, `${title}.json`);
         }}
         size={isMobile ? undefined : 'large'}
-        variant={'filled'}
       >
         {t('shareModal.downloadFile')}
       </Button>

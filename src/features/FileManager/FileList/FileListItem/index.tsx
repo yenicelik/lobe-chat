@@ -1,5 +1,5 @@
-import { Icon, Tooltip } from '@lobehub/ui';
-import { Button, Checkbox } from 'antd';
+import { Button, Tooltip } from '@lobehub/ui';
+import { Checkbox } from 'antd';
 import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -175,7 +175,7 @@ const FileRenderItem = memo<FileRenderItemProps>(
                 >
                   <Button
                     disabled={!isSupportedForChunking}
-                    icon={<Icon icon={FileBoxIcon} />}
+                    icon={FileBoxIcon}
                     loading={isCreatingFileParseTask}
                     onClick={() => {
                       parseFiles([id]);

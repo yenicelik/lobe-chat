@@ -1,5 +1,5 @@
-import { ActionIcon, EditableText, Icon } from '@lobehub/ui';
-import { App, Dropdown, type MenuProps, Typography } from 'antd';
+import { ActionIcon, Dropdown, EditableText, Icon, type MenuProps } from '@lobehub/ui';
+import { App, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import {
   LucideCopy,
@@ -178,19 +178,15 @@ const TopicContent = memo<TopicContentProps>(({ id, title, fav, showMore }) => {
       ) : (
         <EditableText
           editing={editing}
-          inputProps={{
-            onChangeEnd: (v) => {
-              if (title !== v) {
-                updateTopicTitle(id, v);
-              }
-              toggleEditing(false);
-            },
-            size: 'small',
-            style: { height: 28 },
-            variant: 'borderless',
+          onChangeEnd={(v) => {
+            if (title !== v) {
+              updateTopicTitle(id, v);
+            }
+            toggleEditing(false);
           }}
           onEditingChange={toggleEditing}
           showEditIcon={false}
+          style={{ height: 28 }}
           value={title}
         />
       )}

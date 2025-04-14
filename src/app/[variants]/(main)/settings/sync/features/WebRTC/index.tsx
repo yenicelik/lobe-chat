@@ -1,8 +1,8 @@
 'use client';
 
 import { SiWebrtc } from '@icons-pack/react-simple-icons';
-import { Form, type FormGroupItemType, Tooltip } from '@lobehub/ui';
-import { Form as AntForm, Input, Switch, Typography } from 'antd';
+import { Form, type FormGroupItemType, Input, InputPassword, Tooltip } from '@lobehub/ui';
+import { Form as AntForm, Switch, Typography } from 'antd';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
@@ -41,7 +41,7 @@ const WebRTC = memo(() => {
       },
       {
         children: (
-          <Input.Password
+          <InputPassword
             autoComplete={'nw-password'}
             placeholder={t('sync.webrtc.channelPassword.placeholder')}
           />

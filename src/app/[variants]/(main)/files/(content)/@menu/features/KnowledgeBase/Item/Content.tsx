@@ -1,5 +1,5 @@
-import { ActionIcon, EditableText, Icon } from '@lobehub/ui';
-import { App, Dropdown, type MenuProps, Typography } from 'antd';
+import { ActionIcon, Dropdown, EditableText, Icon, type MenuProps } from '@lobehub/ui';
+import { App, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { LucideLoader2, MoreVertical, PencilLine, Trash } from 'lucide-react';
 import { memo, useMemo } from 'react';
@@ -132,21 +132,19 @@ const Content = memo<KnowledgeBaseItemProps>(({ id, name, showMore }) => {
           inputProps={{
             autoFocus: true,
             maxLength: 64,
-            onChangeEnd: (v) => {
-              if (name !== v) {
-                updateKnowledgeBase(id, { name: v });
-              }
-              toggleEditing(false);
-            },
-            size: 'small',
-            style: { height: 28 },
-            variant: 'borderless',
+          }}
+          onChangeEnd={(v) => {
+            if (name !== v) {
+              updateKnowledgeBase(id, { name: v });
+            }
+            toggleEditing(false);
           }}
           onClick={(e) => {
             e.preventDefault();
           }}
           onEditingChange={toggleEditing}
           showEditIcon={false}
+          style={{ height: 28 }}
           value={name}
         />
       )}

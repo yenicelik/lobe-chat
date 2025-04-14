@@ -1,6 +1,14 @@
 import { ProviderIcon } from '@lobehub/icons';
-import { type FormItemProps, FormModal, Icon } from '@lobehub/ui';
-import { App, Input, Select } from 'antd';
+import {
+  type FormItemProps,
+  FormModal,
+  Icon,
+  Input,
+  InputPassword,
+  Select,
+  TextArea,
+} from '@lobehub/ui';
+import { App } from 'antd';
 import { BrainIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useState } from 'react';
@@ -66,7 +74,7 @@ const CreateNewProvider = memo<CreateNewProviderProps>(({ onClose, open }) => {
     },
     {
       children: (
-        <Input.TextArea
+        <TextArea
           placeholder={t('createNewAiProvider.description.placeholder')}
           style={{ minHeight: 80 }}
           variant={'filled'}
@@ -118,7 +126,7 @@ const CreateNewProvider = memo<CreateNewProviderProps>(({ onClose, open }) => {
     },
     {
       children: (
-        <Input.Password
+        <InputPassword
           autoComplete={'new-password'}
           placeholder={t('createNewAiProvider.apiKey.placeholder')}
           variant={'filled'}

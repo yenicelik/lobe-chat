@@ -19,7 +19,7 @@ const useStyles = createStyles(({ css }) => {
 
       height: 100% !important;
       padding-block: 0;
-      padding-inline: 24px;
+      padding-inline: 16px;
 
       line-height: 1.5;
 

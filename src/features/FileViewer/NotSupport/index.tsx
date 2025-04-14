@@ -1,6 +1,5 @@
 import { IDocument } from '@cyntler/react-doc-viewer';
-import { FluentEmoji } from '@lobehub/ui';
-import { Button } from 'antd';
+import { Button, FluentEmoji } from '@lobehub/ui';
 import { createStyles } from 'antd-style';
 import Link from 'next/link';
 import React, { ComponentType, useState } from 'react';
@@ -46,7 +45,6 @@ const NotSupport: ComponentType<{
             </Trans>
           </Flexbox>
           <Button
-            color={'default'}
             loading={loading}
             onClick={async () => {
               if (!doc) return;
@@ -54,7 +52,6 @@ const NotSupport: ComponentType<{
               await downloadFile(doc.uri, fileName);
               setLoading(false);
             }}
-            variant={'filled'}
           >
             {t('preview.downloadFile')}
           </Button>

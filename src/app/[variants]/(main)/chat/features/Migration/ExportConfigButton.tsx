@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@lobehub/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -26,13 +26,7 @@ const ExportConfigButton = memo<{ primary?: boolean; state: any }>(({ state, pri
   };
 
   return (
-    <Button
-      color={primary ? undefined : 'default'}
-      onClick={exportData}
-      size={'large'}
-      type={primary ? 'primary' : undefined}
-      variant={primary ? undefined : 'filled'}
-    >
+    <Button onClick={exportData} size={'large'} type={primary ? 'primary' : undefined}>
       {t('dbV1.action.downloadBackup')}
     </Button>
   );

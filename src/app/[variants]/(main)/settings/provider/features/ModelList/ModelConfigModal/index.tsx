@@ -1,5 +1,5 @@
-import { Modal } from '@lobehub/ui';
-import { Button, FormInstance } from 'antd';
+import { Button, Modal } from '@lobehub/ui';
+import { FormInstance } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { memo, use, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ const ModelConfigModal = memo<ModelConfigModalProps>(({ id, open, setOpen }) => 
     <Modal
       destroyOnClose
       footer={[
-        <Button color={'default'} key="cancel" onClick={closeModal} variant={'filled'}>
+        <Button key="cancel" onClick={closeModal}>
           {t('cancel')}
         </Button>,
         <Button

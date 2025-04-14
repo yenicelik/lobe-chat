@@ -1,5 +1,4 @@
-import { ActionIcon, Icon } from '@lobehub/ui';
-import { Button } from 'antd';
+import { ActionIcon, Button } from '@lobehub/ui';
 import { LucideNotepadText, PlusSquareIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
@@ -20,15 +19,13 @@ const Footer = () => {
   return (
     <Flexbox gap={8} horizontal paddingBlock={12} paddingInline={12}>
       <Button
-        color={'default'}
-        icon={<Icon icon={LucideNotepadText} />}
+        icon={LucideNotepadText}
         loading={isAIGenerating}
         onClick={() => {
           if (!messageId) return;
 
           triggerAIMessage({});
         }}
-        variant={'filled'}
       >
         {t('search.summaryTooltip')}
       </Button>

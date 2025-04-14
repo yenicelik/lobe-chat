@@ -1,6 +1,6 @@
 'use client';
 
-import { Tag } from 'antd';
+import { Tag } from '@lobehub/ui';
 import { useResponsive, useTheme } from 'antd-style';
 import { usePathname } from 'next/navigation';
 import { memo, useRef } from 'react';

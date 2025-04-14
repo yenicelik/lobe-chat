@@ -1,5 +1,4 @@
-import { ActionIcon } from '@lobehub/ui';
-import { Select, SelectProps } from 'antd';
+import { ActionIcon, Select, type SelectProps } from '@lobehub/ui';
 import { isString } from 'lodash-es';
 import { Wand2 } from 'lucide-react';
 import { memo } from 'react';

@@ -1,7 +1,7 @@
 'use client';
 
 import { ProviderCombine } from '@lobehub/icons';
-import { Button } from 'antd';
+import { Button } from '@lobehub/ui';
 import { createStyles } from 'antd-style';
 import Link from 'next/link';
 import { memo } from 'react';
@@ -58,13 +58,7 @@ const Header = memo<HeaderProps>(({ identifier, data, mobile }) => {
         {!mobile && (
           <Flexbox align={'center'} gap={4} horizontal justify={'flex-end'}>
             <Link href={'/discover/providers'}>
-              <Button
-                className={styles.tag}
-                color={'default'}
-                shape={'round'}
-                size={'small'}
-                variant={'filled'}
-              >
+              <Button className={styles.tag} shape={'round'} size={'small'}>
                 {t('tab.providers')}
               </Button>
             </Link>

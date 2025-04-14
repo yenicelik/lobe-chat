@@ -1,7 +1,7 @@
 'use client';
 
-import { Form, type FormGroupItemType, type FormItemProps, Icon } from '@lobehub/ui';
-import { Form as AntForm, Button, Switch } from 'antd';
+import { Button, Form, type FormGroupItemType, type FormItemProps } from '@lobehub/ui';
+import { Form as AntForm, Switch } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { PencilIcon } from 'lucide-react';
 import { memo } from 'react';
@@ -62,12 +62,10 @@ const SystemAgentForm = memo(
           ) : (
             <Button
               block
-              color={'default'}
-              icon={<Icon icon={PencilIcon} />}
+              icon={PencilIcon}
               onClick={async () => {
                 await updateSystemAgent(systemAgentKey, { customPrompt: defaultPrompt });
               }}
-              variant={'filled'}
             >
               {t('systemAgent.customPrompt.addPrompt')}
             </Button>

@@ -1,7 +1,7 @@
 'use client';
 
-import { Avatar, Form, type FormGroupItemType, Icon, Tooltip } from '@lobehub/ui';
-import { Button, Empty, Space, Switch, Tag, Typography } from 'antd';
+import { Avatar, Button, Form, type FormGroupItemType, Tag, Tooltip } from '@lobehub/ui';
+import { Empty, Space, Switch, Typography } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { LucideTrash2, Store } from 'lucide-react';
 import { memo, useState } from 'react';
@@ -99,8 +99,7 @@ const AgentPlugin = memo(() => {
       {hasDeprecated ? (
         <Tooltip title={t('plugin.clearDeprecated')}>
           <Button
-            color={'default'}
-            icon={<Icon icon={LucideTrash2} />}
+            icon={LucideTrash2}
             onClick={(e) => {
               e.stopPropagation();
               for (const i of deprecatedList) {
@@ -108,13 +107,12 @@ const AgentPlugin = memo(() => {
               }
             }}
             size={'small'}
-            variant={'filled'}
           />
         </Tooltip>
       ) : null}
       <Tooltip title={t('plugin.store')}>
         <Button
-          icon={<Icon icon={Store} />}
+          icon={Store}
           onClick={(e) => {
             e.stopPropagation();
             setShowStore(true);

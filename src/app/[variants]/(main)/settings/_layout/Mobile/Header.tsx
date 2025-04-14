@@ -1,7 +1,7 @@
 'use client';
 
+import { Tag } from '@lobehub/ui';
 import { ChatHeader } from '@lobehub/ui/mobile';
-import { Tag } from 'antd';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';

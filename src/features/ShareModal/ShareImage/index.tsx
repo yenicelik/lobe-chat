@@ -1,5 +1,5 @@
-import { Form, type FormItemProps, Icon } from '@lobehub/ui';
-import { Button, Segmented, Switch } from 'antd';
+import { Button, Form, type FormItemProps, Segmented } from '@lobehub/ui';
+import { Switch } from 'antd';
 import { CopyIcon } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -73,7 +73,7 @@ const ShareImage = memo<{ mobile?: boolean }>(({ mobile }) => {
     <>
       <Button
         block
-        icon={<Icon icon={CopyIcon} />}
+        icon={CopyIcon}
         loading={copyLoading}
         onClick={() => onCopy()}
         size={isMobile ? undefined : 'large'}
@@ -81,14 +81,7 @@ const ShareImage = memo<{ mobile?: boolean }>(({ mobile }) => {
       >
         {t('copy', { ns: 'common' })}
       </Button>
-      <Button
-        block
-        color={'default'}
-        loading={loading}
-        onClick={onDownload}
-        size={isMobile ? undefined : 'large'}
-        variant={'filled'}
-      >
+      <Button block loading={loading} onClick={onDownload} size={isMobile ? undefined : 'large'}>
         {t('shareModal.download')}
       </Button>
     </>

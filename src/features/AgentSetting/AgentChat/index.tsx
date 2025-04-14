@@ -1,7 +1,7 @@
 'use client';
 
-import { Form, type FormGroupItemType, ImageSelect, SliderWithInput } from '@lobehub/ui';
-import { Input, Switch } from 'antd';
+import { Form, type FormGroupItemType, ImageSelect, SliderWithInput, TextArea } from '@lobehub/ui';
+import { Switch } from 'antd';
 import { useThemeMode } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import { LayoutList, MessagesSquare } from 'lucide-react';
@@ -51,7 +51,7 @@ const AgentChat = memo(() => {
         name: 'displayMode',
       },
       {
-        children: <Input.TextArea placeholder={t('settingChat.inputTemplate.placeholder')} />,
+        children: <TextArea placeholder={t('settingChat.inputTemplate.placeholder')} />,
         desc: t('settingChat.inputTemplate.desc'),
         label: t('settingChat.inputTemplate.title'),
         name: 'inputTemplate',

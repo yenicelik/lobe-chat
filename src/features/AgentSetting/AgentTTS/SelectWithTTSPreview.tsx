@@ -1,6 +1,6 @@
 import { AudioPlayer } from '@lobehub/tts/react';
-import { Alert, Highlighter } from '@lobehub/ui';
-import { Button, RefSelectProps, Select, SelectProps } from 'antd';
+import { Alert, Button, Highlighter, Select, SelectProps } from '@lobehub/ui';
+import { RefSelectProps } from 'antd';
 import { useTheme } from 'antd-style';
 import { forwardRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';

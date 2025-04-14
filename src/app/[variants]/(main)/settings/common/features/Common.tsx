@@ -1,7 +1,7 @@
 'use client';
 
-import { Form, type FormGroupItemType } from '@lobehub/ui';
-import { App, Button, Input } from 'antd';
+import { Button, Form, type FormGroupItemType, InputPassword } from '@lobehub/ui';
+import { App } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +42,7 @@ const Common = memo(() => {
     children: [
       {
         children: (
-          <Input.Password
+          <InputPassword
             autoComplete={'new-password'}
             placeholder={t('settingSystem.accessCode.placeholder')}
           />
@@ -54,7 +54,7 @@ const Common = memo(() => {
       },
       {
         children: (
-          <Button color={'danger'} danger onClick={handleReset} type="primary" variant={'filled'}>
+          <Button danger onClick={handleReset}>
             {t('danger.reset.action')}
           </Button>
         ),

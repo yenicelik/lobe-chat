@@ -248,7 +248,7 @@ const Item = memo<ChatListItemProps>(
               renderMessage={renderMessage}
               text={text}
               time={item.updatedAt || item.createdAt}
-              type={type === 'chat' ? 'block' : 'pure'}
+              variant={type === 'chat' ? 'bubble' : 'docs'}
             />
             {endRender}
           </Flexbox>

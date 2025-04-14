@@ -82,6 +82,9 @@ const ConversationExample = memo<ConversationExampleProps>(({ data }) => {
                 updateAt: 1_686_437_950_084,
               },
             ]}
+            renderActions={{
+              default: () => null,
+            }}
             renderMessages={{
               default: ({ id, editableContent }) => <div id={id}>{editableContent}</div>,
             }}

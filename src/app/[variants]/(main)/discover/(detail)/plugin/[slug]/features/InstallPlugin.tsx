@@ -1,6 +1,7 @@
 'use client';
 
-import { App, Button, Skeleton } from 'antd';
+import { Button } from '@lobehub/ui';
+import { App, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -61,7 +62,6 @@ const InstallPlugin = memo<{ identifier: string }>(({ identifier }) => {
   return (
     <Button
       className={styles.button}
-      color={installed ? 'default' : undefined}
       loading={loadingState}
       onClick={() => {
         if (loading || installing) return;
@@ -74,7 +74,6 @@ const InstallPlugin = memo<{ identifier: string }>(({ identifier }) => {
       size={'large'}
       style={{ flex: 1, width: 'unset' }}
       type={installed ? 'default' : 'primary'}
-      variant={installed ? 'filled' : undefined}
     >
       {t(installed ? 'plugins.installed' : 'plugins.install')}
     </Button>

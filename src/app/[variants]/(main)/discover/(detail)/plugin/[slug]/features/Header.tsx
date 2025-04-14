@@ -1,7 +1,6 @@
 'use client';
 
-import { Avatar, Icon, Tag } from '@lobehub/ui';
-import { Button } from 'antd';
+import { Avatar, Button, Icon, Tag } from '@lobehub/ui';
 import { createStyles } from 'antd-style';
 import { startCase } from 'lodash-es';
 import { ChevronRight } from 'lucide-react';
@@ -72,13 +71,7 @@ const Header = memo<HeaderProps>(({ identifier, data, mobile }) => {
         {!mobile && (
           <Flexbox align={'center'} gap={4} horizontal justify={'flex-end'}>
             <Link href={'/discover/plugins'}>
-              <Button
-                className={styles.tag}
-                color={'default'}
-                shape={'round'}
-                size={'small'}
-                variant={'filled'}
-              >
+              <Button className={styles.tag} shape={'round'} size={'small'}>
                 {t('tab.plugins')}
               </Button>
             </Link>

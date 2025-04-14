@@ -1,8 +1,8 @@
 'use client';
 
-import { Form } from '@lobehub/ui';
+import { Button, Form } from '@lobehub/ui';
 import { EditableMessage } from '@lobehub/ui/chat';
-import { Button, Skeleton } from 'antd';
+import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

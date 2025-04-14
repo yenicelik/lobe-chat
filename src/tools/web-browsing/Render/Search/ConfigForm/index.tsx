@@ -1,4 +1,4 @@
-import { Button } from 'antd';
+import { Button } from '@lobehub/ui';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Center, Flexbox } from 'react-layout-kit';
@@ -52,11 +52,9 @@ const ConfigAlert = memo<ConfigAlertProps>(({ provider, id }) => {
             {t('search.config.confirm')}
           </Button>
           <Button
-            color={'default'}
             onClick={() => {
               deleteMessage(id);
             }}
-            variant={'filled'}
           >
             {t('search.config.close')}
           </Button>

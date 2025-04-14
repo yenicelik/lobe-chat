@@ -1,7 +1,8 @@
 'use client';
 
+import { Button } from '@lobehub/ui';
 import { LobeChat } from '@lobehub/ui/brand';
-import { Button, Col, Flex, Row, Skeleton, Typography } from 'antd';
+import { Col, Flex, Row, Skeleton, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { AuthError } from 'next-auth';
 import { signIn } from 'next-auth/react';
@@ -124,11 +125,9 @@ export default memo(() => {
               oAuthSSOProviders.map((provider) => (
                 <Button
                   className={styles.button}
-                  color={'default'}
                   icon={AuthIcons(provider, 16)}
                   key={provider}
                   onClick={() => handleSignIn(provider)}
-                  variant={'filled'}
                 >
                   {provider}
                 </Button>

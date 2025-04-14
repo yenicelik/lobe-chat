@@ -1,5 +1,5 @@
-import { Icon } from '@lobehub/ui';
-import { App, Button, Checkbox, Skeleton } from 'antd';
+import { Button, Icon } from '@lobehub/ui';
+import { App, Checkbox, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { BookMinusIcon, BookPlusIcon, FileBoxIcon, Trash2Icon } from 'lucide-react';
 import { rgba } from 'polished';
@@ -74,8 +74,7 @@ const MultiSelectActions = memo<MultiSelectActionsProps>(
             {isInKnowledgeBase ? (
               <>
                 <Button
-                  color={'default'}
-                  icon={<Icon icon={BookMinusIcon} />}
+                  icon={BookMinusIcon}
                   onClick={() => {
                     modal.confirm({
                       okButtonProps: {
@@ -91,7 +90,6 @@ const MultiSelectActions = memo<MultiSelectActionsProps>(
                     });
                   }}
                   size={'small'}
-                  variant={'filled'}
                 >
                   {t('FileManager.actions.removeFromKnowledgeBase')}
                 </Button>

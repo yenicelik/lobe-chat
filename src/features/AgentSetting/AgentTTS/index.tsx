@@ -1,8 +1,8 @@
 'use client';
 
 import { VoiceList } from '@lobehub/tts';
-import { Form, type FormGroupItemType } from '@lobehub/ui';
-import { Select, Switch } from 'antd';
+import { Form, type FormGroupItemType, Select } from '@lobehub/ui';
+import { Switch } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { Mic } from 'lucide-react';
 import { memo, useMemo } from 'react';

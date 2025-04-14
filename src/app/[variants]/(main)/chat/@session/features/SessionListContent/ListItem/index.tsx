@@ -40,7 +40,7 @@ const ListItem = memo<ListItemProps & { avatar: string; avatarBackground?: strin
           avatar={avatar}
           background={avatarBackground}
           shape="circle"
-          size={46}
+          size={40}
         />
       ),
       [isHovering, avatar, avatarBackground],

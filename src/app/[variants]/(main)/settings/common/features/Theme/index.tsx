@@ -1,7 +1,7 @@
 'use client';
 
 import { Form, type FormGroupItemType, ImageSelect, SliderWithInput } from '@lobehub/ui';
-import { Select } from 'antd';
+import { Select } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { memo } from 'react';

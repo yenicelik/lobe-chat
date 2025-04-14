@@ -1,8 +1,7 @@
 'use client';
 
 import { CheckCircleFilled } from '@ant-design/icons';
-import { Alert, Highlighter } from '@lobehub/ui';
-import { Button } from 'antd';
+import { Alert, Button, Highlighter } from '@lobehub/ui';
 import { useTheme } from 'antd-style';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -108,7 +107,7 @@ const Checker = memo<ConnectionCheckerProps>(({ model, provider }) => {
             {t('llm.checker.pass')}
           </Flexbox>
         )}
-        <Button color={'default'} loading={loading} onClick={checkConnection} variant={'filled'}>
+        <Button loading={loading} onClick={checkConnection}>
           {t('llm.checker.button')}
         </Button>
       </Flexbox>

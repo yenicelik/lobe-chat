@@ -1,5 +1,4 @@
-import { Alert, Highlighter, Icon } from '@lobehub/ui';
-import { Button } from 'antd';
+import { Alert, Button, Highlighter } from '@lobehub/ui';
 import { LucideRefreshCw } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +35,7 @@ const Error = memo<ErrorProps>(({ messageId, index }) => {
           type={'error'}
         />
         <Button
-          icon={<Icon icon={LucideRefreshCw} />}
+          icon={LucideRefreshCw}
           onClick={() => reInvokeToolMessage(messageId)}
           type={'primary'}
         >

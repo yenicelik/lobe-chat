@@ -1,5 +1,5 @@
-import { Alert, Highlighter, Icon, Modal } from '@lobehub/ui';
-import { Button, Spin } from 'antd';
+import { Alert, Button, Highlighter, Icon, Modal } from '@lobehub/ui';
+import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import { PenToolIcon, TriangleAlert } from 'lucide-react';

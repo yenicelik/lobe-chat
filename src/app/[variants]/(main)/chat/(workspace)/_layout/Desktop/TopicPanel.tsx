@@ -18,10 +18,10 @@ const useStyles = createStyles(({ css, token }) => ({
     height: 100% !important;
   `,
   drawer: css`
-    z-index: 10;
+    z-index: 20;
   `,
   header: css`
-    border-block-end: 1px solid ${token.colorBorder};
+    border-block-end: 1px solid ${token.colorBorderSecondary};
   `,
 }));
 

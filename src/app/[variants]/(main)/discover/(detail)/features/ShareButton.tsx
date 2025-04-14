@@ -1,5 +1,14 @@
-import { ActionIcon, Avatar, CopyButton, Icon, Input, Modal, Tag } from '@lobehub/ui';
-import { Button, ButtonProps, Skeleton, Typography } from 'antd';
+import {
+  ActionIcon,
+  Avatar,
+  Button,
+  ButtonProps,
+  CopyButton,
+  Input,
+  Modal,
+  Tag,
+} from '@lobehub/ui';
+import { Skeleton, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { startCase } from 'lodash-es';
 import { LinkIcon, Share2Icon } from 'lucide-react';
@@ -139,14 +148,7 @@ const ShareButton = memo<ShareButtonProps>(({ meta, ...rest }) => {
 
   return (
     <>
-      <Button
-        color={'default'}
-        icon={<Icon icon={Share2Icon} />}
-        onClick={() => setOpen(true)}
-        size={'large'}
-        variant={'filled'}
-        {...rest}
-      />
+      <Button icon={Share2Icon} onClick={() => setOpen(true)} size={'large'} {...rest} />
       <Modal
         footer={null}
         onCancel={() => setOpen(false)}
