@@ -83,7 +83,8 @@ export class App {
     //  ==============
     await this.ipcServer.start();
 
-    await app.whenReady();
+    // 初始化 app
+    await this.makeAppReady();
 
     // 初始化网络拦截器
     this.networkInterceptor.initialize();
@@ -131,16 +132,44 @@ export class App {
     this.browserManager.showMainWindow();
   };
 
+  /**
+   * 在应用准备就绪前调用所有控制器的 beforeAppReady 方法
+   */
+  private makeAppReady = async () => {
+    const beforeAppReadyPools = Object.values(this.controllers).map(async (controller) => {
+      if (typeof controller.beforeAppReady === 'function') {
+        try {
+          await controller.beforeAppReady();
+        } catch (error) {
+          console.error(`[App] Error in controller.beforeAppReady:`, error);
+        }
+      }
+    });
+    const afterAppReadyPools = Object.values(this.controllers).map(async (controller) => {
+      if (typeof controller.afterAppReady === 'function') {
+        try {
+          await controller.afterAppReady();
+        } catch (error) {
+          console.error(`[App] Error in controller.beforeAppReady:`, error);
+        }
+      }
+    });
+
+    await Promise.allSettled(beforeAppReadyPools);
+    await app.whenReady();
+    await Promise.allSettled(afterAppReadyPools);
+  };
+
   // ============= helper ============= //
 
   /**
    * all controllers in app
    */
-  private controllers = new WeakMap();
+  private controllers = new Map<Class<any>, any>();
   /**
    * all services in app
    */
-  private services = new WeakMap();
+  private services = new Map<Class<any>, any>();
 
   private ipcServer: ElectronIPCServer;
   /**

@@ -14,15 +14,11 @@ export default class AuthCtr extends ControllerModule {
   /**
    * 远程服务器配置控制器
    */
-  private remoteServerConfigCtr: RemoteServerConfigCtr;
+  private get remoteServerConfigCtr() {
+    return this.app.getController(RemoteServerConfigCtr);
+  }
 
-  constructor(app) {
-    super(app);
-
-    // 获取远程服务器配置控制器
-    this.remoteServerConfigCtr = app.controllers.get(RemoteServerConfigCtr);
-
-    // 注册自定义协议处理
+  beforeAppReady() {
     this.registerProtocolHandler();
   }
 
@@ -53,16 +49,16 @@ export default class AuthCtr extends ControllerModule {
       this.authRequestState = crypto.randomBytes(16).toString('hex');
 
       // 构造授权URL
-      const authUrl = new URL('/oauth/authorize', serverUrl);
+      const authUrl = new URL('/oidc/auth', serverUrl);
 
       // 添加查询参数
       authUrl.search = querystring.stringify({
-        client_id: 'lobe-chat-desktop',
+        client_id: 'lobehub-desktop',
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
-        redirect_uri: 'lobe-chat-desktop://auth/callback',
+        redirect_uri: 'com.lobehub.desktop://auth/callback',
         response_type: 'code',
-        scope: 'profile sync api',
+        scope: 'profile offline_access sync:read sync:write',
         state: this.authRequestState,
       });
 

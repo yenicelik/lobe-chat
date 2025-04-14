@@ -48,6 +48,9 @@ export class ControllerModule {
   constructor(public app: App) {
     this.app = app;
   }
+
+  beforeAppReady?(): void {}
+  afterAppReady?(): void {}
 }
 
 export type IControlModule = typeof ControllerModule;
