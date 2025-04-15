@@ -3,9 +3,13 @@ import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain } from 'electro
 import { join } from 'node:path';
 
 import { isDev } from '@/const/env';
+import { createLogger } from '@/utils/logger';
 
 import { preloadDir, resourcesDir } from '../const/dir';
 import type { App } from './App';
+
+// Create logger
+const logger = createLogger('core:Browser');
 
 export interface BrowserWindowOpts extends BrowserWindowConstructorOptions {
   devTools?: boolean;
@@ -53,6 +57,7 @@ export default class Browser {
    * @param application
    */
   constructor(options: BrowserWindowOpts, application: App) {
+    logger.debug(`Creating Browser instance: ${options.identifier}`);
     this.app = application;
     this.identifier = options.identifier;
     this.options = options;
@@ -65,65 +70,69 @@ export default class Browser {
     const initUrl = this.app.nextServerUrl + path;
 
     try {
-      console.log(`[Browser] loading ${initUrl}`);
+      logger.debug(`Loading URL: ${initUrl}`);
       await this._browserWindow.loadURL(initUrl);
-      console.log(`[Browser] loaded ${initUrl}`);
+      logger.debug(`Successfully loaded URL: ${initUrl}`);
     } catch (error) {
-      console.error(`[Browser] failed to load (${initUrl}):`, error);
+      logger.error(`Failed to load URL (${initUrl}):`, error);
 
       // Try to load local error page
       try {
         await this._browserWindow.loadFile(join(resourcesDir, 'error.html'));
-        console.log('[APP] Error page loaded');
+        logger.info('Error page loaded');
 
         // Remove previously set retry listeners to avoid duplicates
 
         // Set retry logic
         ipcMain.handle('retry-connection', async () => {
-          console.log(`[APP] Attempting to reconnect ${initUrl}`);
+          logger.info(`Attempting to reconnect to: ${initUrl}`);
           try {
             await this._browserWindow?.loadURL(initUrl);
-            console.log('[APP] Reconnection successful');
+            logger.info('Reconnection successful');
             return { success: true };
           } catch (err) {
-            console.error('[APP] Retry failed:', err);
+            logger.error('Retry failed:', err);
             // Reload error page
             try {
               await this._browserWindow?.loadFile(join(resourcesDir, 'error.html'));
             } catch (loadErr) {
-              console.error('[APP] Failed to load error page:', loadErr);
+              logger.error('Failed to load error page:', loadErr);
             }
             return { error: err.message, success: false };
           }
         });
       } catch (err) {
-        console.error('[APP] Failed to load error page:', err);
+        logger.error('Failed to load error page:', err);
         // If even the error page can't be loaded, at least show a simple error message
         try {
           await this._browserWindow.loadURL(
             'data:text/html,<html><body><h1>Loading Failed</h1><p>Unable to connect to server, please restart the application</p></body></html>',
           );
         } catch (finalErr) {
-          console.error('[APP] Unable to display any page:', finalErr);
+          logger.error('Unable to display any page:', finalErr);
         }
       }
     }
   };
 
   loadPlaceholder = async () => {
+    logger.debug('Loading splash screen');
     // First load a local HTML loading page
     await this._browserWindow.loadFile(join(resourcesDir, 'splash.html'));
   };
 
   show() {
+    logger.debug(`Showing window: ${this.identifier}`);
     this.browserWindow.show();
   }
 
   hide() {
+    logger.debug(`Hiding window: ${this.identifier}`);
     this.browserWindow.hide();
   }
 
   close() {
+    logger.debug(`Closing window: ${this.identifier}`);
     this.browserWindow.close();
   }
 
@@ -131,6 +140,7 @@ export default class Browser {
    * Destroy instance
    */
   destroy() {
+    logger.debug(`Destroying window: ${this.identifier}`);
     this.stopInterceptHandler?.();
     this._browserWindow = undefined;
   }
@@ -146,7 +156,7 @@ export default class Browser {
 
     const { path, title, width, height, devTools, showOnInit, ...res } = this.options;
 
-    console.log(`[Browser] create new Browser instance: ${this.identifier}`);
+    logger.info(`Creating new BrowserWindow instance: ${this.identifier}`);
     const browserWindow = new BrowserWindow({
       ...res,
       height,
@@ -172,29 +182,35 @@ export default class Browser {
 
     // Windows 11 can use this new API
     if (process.platform === 'win32' && browserWindow.setBackgroundMaterial) {
+      logger.debug('Setting window background material for Windows 11');
       browserWindow.setBackgroundMaterial('acrylic');
     }
 
     this.loadPlaceholder().then(() => {
       this.loadUrl(path).catch((e) => {
-        console.error(`load url error, ${path}`, e);
+        logger.error(`Load URL error for path: ${path}`, e);
       });
     });
 
     // Show devtools if enabled
     if (devTools) {
+      logger.debug('Opening DevTools');
       browserWindow.webContents.openDevTools();
     }
 
     browserWindow.once('ready-to-show', () => {
-      if (showOnInit) browserWindow?.show();
+      if (showOnInit) {
+        logger.debug(`Window ready to show, showing: ${this.identifier}`);
+        browserWindow?.show();
+      }
     });
 
     browserWindow.on('close', (e) => {
-      console.log(`[Browser] Window close event: ${this.identifier}`);
+      logger.debug(`Window close event: ${this.identifier}`);
 
       // If in application quitting process, allow window to be closed
       if (this.app.isQuiting) {
+        logger.debug(`App is quitting, allowing window to close: ${this.identifier}`);
         // Need to clean up intercept handler
         this.stopInterceptHandler?.();
         return;
@@ -202,7 +218,7 @@ export default class Browser {
 
       // Prevent window from being destroyed, just hide it (if marked as keepAlive)
       if (this.options.keepAlive) {
-        console.log(`[Browser] Window needs to remain active: ${this.identifier}`);
+        logger.debug(`Window needs to remain active, hiding instead: ${this.identifier}`);
         e.preventDefault();
         browserWindow.hide();
       } else {
@@ -215,10 +231,14 @@ export default class Browser {
   }
 
   moveToCenter() {
+    logger.debug(`Centering window: ${this.identifier}`);
     this._browserWindow?.center();
   }
 
   setWindowSize(boundSize: { height?: number; width?: number }) {
+    logger.debug(
+      `Setting window size for ${this.identifier}: width=${boundSize.width}, height=${boundSize.height}`,
+    );
     const windowSize = this._browserWindow.getBounds();
     this._browserWindow?.setBounds({
       height: boundSize.height || windowSize.height,
@@ -227,10 +247,12 @@ export default class Browser {
   }
 
   broadcast = <T extends MainBroadcastEventKey>(channel: T, data?: MainBroadcastParams<T>) => {
+    logger.debug(`Broadcasting to window ${this.identifier}, channel: ${channel}`);
     this._browserWindow.webContents.send(channel, data);
   };
 
   toggleVisible() {
+    logger.debug(`Toggling visibility for window: ${this.identifier}`);
     if (this._browserWindow.isVisible() && this._browserWindow.isFocused()) {
       this._browserWindow.hide();
     } else {

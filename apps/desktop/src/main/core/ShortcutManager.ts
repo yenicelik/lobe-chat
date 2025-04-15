@@ -1,8 +1,12 @@
 import { globalShortcut } from 'electron';
 
 import { DEFAULT_SHORTCUTS_CONFIG } from '@/shortcuts';
+import { createLogger } from '@/utils/logger';
 
 import type { App } from './App';
+
+// Create logger
+const logger = createLogger('core:ShortcutManager');
 
 export class ShortcutManager {
   private app: App;
@@ -10,6 +14,7 @@ export class ShortcutManager {
   private shortcutsConfig: Record<string, string> = {};
 
   constructor(app: App) {
+    logger.debug('Initializing ShortcutManager');
     this.app = app;
 
     app.shortcutMethodMap.forEach((method, key) => {
@@ -18,143 +23,146 @@ export class ShortcutManager {
   }
 
   initialize() {
-    // 从存储中加载快捷键配置
+    logger.info('Initializing global shortcuts');
+    // Load shortcuts configuration from storage
     this.loadShortcutsConfig();
-    // 注册配置的快捷键
+    // Register configured shortcuts
     this.registerConfiguredShortcuts();
   }
 
   /**
-   * 获取快捷键配置
+   * Get shortcuts configuration
    */
   getShortcutsConfig(): Record<string, string> {
     return this.shortcutsConfig;
   }
 
   /**
-   * 更新单个快捷键配置
+   * Update a single shortcut configuration
    */
   updateShortcutConfig(id: string, accelerator: string): boolean {
     try {
-      // 更新配置
+      logger.debug(`Updating shortcut ${id} to ${accelerator}`);
+      // Update configuration
       this.shortcutsConfig[id] = accelerator;
 
       this.saveShortcutsConfig();
       this.registerConfiguredShortcuts();
       return true;
     } catch (error) {
-      console.error(`[ShortcutManager] Error updating shortcut ${id}:`, error);
+      logger.error(`Error updating shortcut ${id}:`, error);
       return false;
     }
   }
 
   /**
-   * 注册全局快捷键
-   * @param accelerator 快捷键
-   * @param callback 回调函数
-   * @returns 是否注册成功
+   * Register global shortcut
+   * @param accelerator Shortcut key combination
+   * @param callback Callback function
+   * @returns Whether registration was successful
    */
   registerShortcut(accelerator: string, callback: () => void): boolean {
     try {
-      // 如果已经注册过，先注销
+      // If already registered, unregister first
       if (this.shortcuts.has(accelerator)) {
         this.unregisterShortcut(accelerator);
       }
 
-      // 注册新的快捷键
+      // Register new shortcut
       const success = globalShortcut.register(accelerator, callback);
 
       if (success) {
         this.shortcuts.set(accelerator, callback);
-        console.log(`[ShortcutManager] Registered shortcut: ${accelerator}`);
+        logger.debug(`Registered shortcut: ${accelerator}`);
       } else {
-        console.error(`[ShortcutManager] Failed to register shortcut: ${accelerator}`);
+        logger.error(`Failed to register shortcut: ${accelerator}`);
       }
 
       return success;
     } catch (error) {
-      console.error(`[ShortcutManager] Error registering shortcut: ${accelerator}`, error);
+      logger.error(`Error registering shortcut: ${accelerator}`, error);
       return false;
     }
   }
 
   /**
-   * 注销全局快捷键
-   * @param accelerator 快捷键
+   * Unregister global shortcut
+   * @param accelerator Shortcut key combination
    */
   unregisterShortcut(accelerator: string): void {
     try {
       globalShortcut.unregister(accelerator);
       this.shortcuts.delete(accelerator);
-      console.log(`[ShortcutManager] Unregistered shortcut: ${accelerator}`);
+      logger.debug(`Unregistered shortcut: ${accelerator}`);
     } catch (error) {
-      console.error(`[ShortcutManager] Error unregistering shortcut: ${accelerator}`, error);
+      logger.error(`Error unregistering shortcut: ${accelerator}`, error);
     }
   }
 
   /**
-   * 检查快捷键是否已注册
-   * @param accelerator 快捷键
-   * @returns 是否已注册
+   * Check if a shortcut is already registered
+   * @param accelerator Shortcut key combination
+   * @returns Whether it is registered
    */
   isRegistered(accelerator: string): boolean {
     return globalShortcut.isRegistered(accelerator);
   }
 
   /**
-   * 注销所有快捷键
+   * Unregister all shortcuts
    */
   unregisterAll(): void {
     globalShortcut.unregisterAll();
-    console.log('[ShortcutManager] Unregistered all shortcuts');
+    logger.info('Unregistered all shortcuts');
   }
 
   /**
-   * 从存储中加载快捷键配置
+   * Load shortcuts configuration from storage
    */
   private loadShortcutsConfig() {
     try {
-      // 尝试从存储中获取配置
+      // Try to get configuration from storage
       const config = this.app.storeManager.get('shortcuts');
 
-      // 如果没有配置，使用默认配置
+      // If no configuration, use default configuration
       if (!config || Object.keys(config).length === 0) {
+        logger.debug('No shortcuts config found, using defaults');
         this.shortcutsConfig = DEFAULT_SHORTCUTS_CONFIG;
         this.saveShortcutsConfig();
       } else {
         this.shortcutsConfig = config;
       }
 
-      console.log('[ShortcutManager] Loaded shortcuts config:', this.shortcutsConfig);
+      logger.debug('Loaded shortcuts config:', this.shortcutsConfig);
     } catch (error) {
-      console.error('[ShortcutManager] Error loading shortcuts config:', error);
+      logger.error('Error loading shortcuts config:', error);
       this.shortcutsConfig = DEFAULT_SHORTCUTS_CONFIG;
       this.saveShortcutsConfig();
     }
   }
 
   /**
-   * 保存快捷键配置到存储
+   * Save shortcuts configuration to storage
    */
   private saveShortcutsConfig() {
     try {
       this.app.storeManager.set('shortcuts', this.shortcutsConfig);
-      console.log('[ShortcutManager] Saved shortcuts config');
+      logger.debug('Saved shortcuts config');
     } catch (error) {
-      console.error('[ShortcutManager] Error saving shortcuts config:', error);
+      logger.error('Error saving shortcuts config:', error);
     }
   }
 
   /**
-   * 注册配置的快捷键
+   * Register configured shortcuts
    */
   private registerConfiguredShortcuts() {
-    // 先注销所有快捷键
+    // Unregister all shortcuts first
     this.unregisterAll();
 
-    // 注册每个启用的快捷键
+    // Register each enabled shortcut
     Object.entries(this.shortcutsConfig).forEach(([id, accelerator]) => {
-      console.log(`[ShortcutManager] registering '${id}' with ${accelerator}...`);
+      logger.debug(`Registering shortcut '${id}' with ${accelerator}`);
 
       const method = this.shortcuts.get(id);
       if (accelerator && method) {

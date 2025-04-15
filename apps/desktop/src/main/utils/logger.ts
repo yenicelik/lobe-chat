@@ -14,7 +14,6 @@ export const createLogger = (namespace: string) => {
 
   return {
     debug: (message, ...args) => {
-      electronLog.debug(message, ...args);
       debugLogger(message, ...args);
     },
     error: (message, ...args) => {
