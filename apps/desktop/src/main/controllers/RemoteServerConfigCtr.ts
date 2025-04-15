@@ -1,33 +1,47 @@
 import { safeStorage } from 'electron';
 
+import { createLogger } from '@/utils/logger';
+
 import { ControllerModule, ipcClientEvent } from './index';
 
+// Create logger
+const logger = createLogger('controllers:RemoteServerConfigCtr');
+
 /**
- * 远程服务器配置控制器
- * 用于管理自定义远程LobeChat服务器的配置
+ * Remote Server Configuration Controller
+ * Used to manage custom remote LobeChat server configuration
  */
 export default class RemoteServerConfigCtr extends ControllerModule {
   /**
-   * 获取远程服务器配置
+   * Get remote server configuration
    */
   @ipcClientEvent('getRemoteServerConfig')
   async getRemoteServerConfig() {
+    logger.debug('Getting remote server configuration');
     const { storeManager } = this.app;
 
-    return {
+    const config = {
       isRemoteServerActive: storeManager.get('isRemoteServerActive', false),
       remoteServerUrl: storeManager.get('remoteServerUrl', ''),
     };
+
+    logger.debug(
+      `Remote server config: active=${config.isRemoteServerActive}, url=${config.remoteServerUrl}`,
+    );
+    return config;
   }
 
   /**
-   * 设置远程服务器配置
+   * Set remote server configuration
    */
   @ipcClientEvent('setRemoteServerConfig')
   async setRemoteServerConfig(config: { isRemoteServerActive: boolean; remoteServerUrl: string }) {
+    logger.info(
+      `Setting remote server config: active=${config.isRemoteServerActive}, url=${config.remoteServerUrl}`,
+    );
     const { storeManager } = this.app;
 
-    // 保存配置
+    // Save configuration
     storeManager.set('remoteServerUrl', config.remoteServerUrl);
     storeManager.set('isRemoteServerActive', config.isRemoteServerActive);
 
@@ -35,48 +49,53 @@ export default class RemoteServerConfigCtr extends ControllerModule {
   }
 
   /**
-   * 清除远程服务器配置
+   * Clear remote server configuration
    */
   @ipcClientEvent('clearRemoteServerConfig')
   async clearRemoteServerConfig() {
+    logger.info('Clearing remote server configuration');
     const { storeManager } = this.app;
 
-    // 清除实例配置
+    // Clear instance configuration
     storeManager.delete('remoteServerUrl');
     storeManager.set('isRemoteServerActive', false);
 
-    // 清除令牌（如果有）
+    // Clear tokens (if any)
     await this.clearTokens();
 
     return true;
   }
 
   /**
-   * 保存加密后的令牌
-   * 令牌只存储在内存中，不持久化到存储中
+   * Encrypted tokens
+   * Tokens are only stored in memory, not persisted to storage
    */
   private encryptedAccessToken?: string;
   private encryptedRefreshToken?: string;
 
   /**
-   * 是否正在刷新 Token
+   * Whether token refresh is in progress
    */
   private isRefreshing = false;
 
   /**
-   * 加密并存储令牌
-   * @param accessToken 访问令牌
-   * @param refreshToken 刷新令牌
+   * Encrypt and store tokens
+   * @param accessToken Access token
+   * @param refreshToken Refresh token
    */
   async saveTokens(accessToken: string, refreshToken: string) {
-    // 如果平台不支持安全存储，直接存储原始令牌
+    logger.info('Saving encrypted tokens');
+
+    // If platform doesn't support secure storage, store raw tokens
     if (!safeStorage.isEncryptionAvailable()) {
+      logger.warn('Safe storage not available, storing tokens unencrypted');
       this.encryptedAccessToken = accessToken;
       this.encryptedRefreshToken = refreshToken;
       return;
     }
 
-    // 加密令牌
+    // Encrypt tokens
+    logger.debug('Encrypting tokens using safe storage');
     this.encryptedAccessToken = Buffer.from(safeStorage.encryptString(accessToken)).toString(
       'base64',
     );
@@ -87,66 +106,80 @@ export default class RemoteServerConfigCtr extends ControllerModule {
   }
 
   /**
-   * 获取解密后的访问令牌
+   * Get decrypted access token
    */
   async getAccessToken(): Promise<string | null> {
-    if (!this.encryptedAccessToken) return null;
+    logger.debug('Getting access token');
+    if (!this.encryptedAccessToken) {
+      logger.debug('No access token stored');
+      return null;
+    }
 
-    // 如果平台不支持安全存储，直接返回存储的令牌
+    // If platform doesn't support secure storage, return stored token
     if (!safeStorage.isEncryptionAvailable()) {
+      logger.debug('Safe storage not available, returning unencrypted token');
       return this.encryptedAccessToken;
     }
 
     try {
-      // 解密令牌
+      // Decrypt token
+      logger.debug('Decrypting access token');
       const encryptedData = Buffer.from(this.encryptedAccessToken, 'base64');
       return safeStorage.decryptString(encryptedData);
     } catch (error) {
-      console.error('解密访问令牌失败:', error);
+      logger.error('Failed to decrypt access token:', error);
       return null;
     }
   }
 
   /**
-   * 获取解密后的刷新令牌
+   * Get decrypted refresh token
    */
   async getRefreshToken(): Promise<string | null> {
-    if (!this.encryptedRefreshToken) return null;
+    logger.debug('Getting refresh token');
+    if (!this.encryptedRefreshToken) {
+      logger.debug('No refresh token stored');
+      return null;
+    }
 
-    // 如果平台不支持安全存储，直接返回存储的令牌
+    // If platform doesn't support secure storage, return stored token
     if (!safeStorage.isEncryptionAvailable()) {
+      logger.debug('Safe storage not available, returning unencrypted token');
       return this.encryptedRefreshToken;
     }
 
     try {
-      // 解密令牌
+      // Decrypt token
+      logger.debug('Decrypting refresh token');
       const encryptedData = Buffer.from(this.encryptedRefreshToken, 'base64');
       return safeStorage.decryptString(encryptedData);
     } catch (error) {
-      console.error('解密刷新令牌失败:', error);
+      logger.error('Failed to decrypt refresh token:', error);
       return null;
     }
   }
 
   /**
-   * 清除令牌
+   * Clear tokens
    */
   async clearTokens() {
+    logger.info('Clearing access and refresh tokens');
     this.encryptedAccessToken = undefined;
     this.encryptedRefreshToken = undefined;
   }
 
   /**
-   * 获取刷新状态
+   * Get refresh status
    */
   isTokenRefreshing() {
     return this.isRefreshing;
   }
 
   /**
-   * 设置刷新状态
+   * Set refresh status
    */
   setTokenRefreshing(status: boolean) {
+    logger.debug(`Setting token refresh status: ${status}`);
     this.isRefreshing = status;
   }
 }
