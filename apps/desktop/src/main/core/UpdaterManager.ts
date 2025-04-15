@@ -24,7 +24,7 @@ export class UpdaterManager {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
 
-    log.info(`[Updater] Log file should be at: ${log.transports.file.getFile().path}`); // 打印路径
+    logger.debug(`[Updater] Log file should be at: ${log.transports.file.getFile().path}`); // 打印路径
   }
 
   get mainWindow() {

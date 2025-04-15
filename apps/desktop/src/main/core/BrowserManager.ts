@@ -1,9 +1,14 @@
 import { MainBroadcastEventKey, MainBroadcastParams } from '@lobechat/electron-client-ipc';
 
+import { createLogger } from '@/utils/logger';
+
 import { AppBrowsersIdentifiers, appBrowsers } from '../appBrowsers';
 import type { App } from './App';
 import type { BrowserWindowOpts } from './Browser';
 import Browser from './Browser';
+
+// Create logger
+const logger = createLogger('core:BrowserManager');
 
 export default class BrowserManager {
   app: App;
@@ -11,6 +16,7 @@ export default class BrowserManager {
   browsers: Map<AppBrowsersIdentifiers, Browser> = new Map();
 
   constructor(app: App) {
+    logger.debug('Initializing BrowserManager');
     this.app = app;
   }
 
@@ -19,16 +25,15 @@ export default class BrowserManager {
   }
 
   showMainWindow() {
+    logger.debug('Showing main window');
     const window = this.getMainWindow();
-
     window.show();
   }
 
   showSettingsWindow() {
+    logger.debug('Showing settings window');
     const window = this.retrieveByIdentifier('settings');
-
     window.show();
-
     return window;
   }
 
@@ -36,6 +41,7 @@ export default class BrowserManager {
     event: T,
     data: MainBroadcastParams<T>,
   ) => {
+    logger.debug(`Broadcasting event ${event} to all windows`);
     this.browsers.forEach((browser) => {
       browser.broadcast(event, data);
     });
@@ -46,6 +52,7 @@ export default class BrowserManager {
     event: T,
     data: MainBroadcastParams<T>,
   ) => {
+    logger.debug(`Broadcasting event ${event} to window: ${identifier}`);
     this.browsers.get(identifier).broadcast(event, data);
   };
 
@@ -54,12 +61,14 @@ export default class BrowserManager {
    * @param tab Settings window sub-path tab
    */
   async showSettingsWindowWithTab(tab?: string) {
+    logger.debug(`Showing settings window with tab: ${tab || 'default'}`);
     // common is the main path for settings route
     if (tab && tab !== 'common') {
       const browser = await this.redirectToPage('settings', tab);
 
       // make provider page more large
       if (tab.startsWith('provider/')) {
+        logger.debug('Resizing window for provider settings');
         browser.setWindowSize({ height: 1000, width: 1400 });
         browser.moveToCenter();
       }
@@ -86,7 +95,7 @@ export default class BrowserManager {
       // Build complete URL path
       const fullPath = subPath ? `${baseRoute}/${subPath}` : baseRoute;
 
-      console.log(`[BrowserManager] Redirecting to: ${fullPath}`);
+      logger.debug(`Redirecting to: ${fullPath}`);
 
       // Load URL and show window
       await browser.loadUrl(fullPath);
@@ -94,7 +103,7 @@ export default class BrowserManager {
 
       return browser;
     } catch (error) {
-      console.error(`[BrowserManager] Failed to redirect (${identifier}/${subPath}):`, error);
+      logger.error(`Failed to redirect (${identifier}/${subPath}):`, error);
       throw error;
     }
   }
@@ -107,15 +116,17 @@ export default class BrowserManager {
 
     if (browser) return browser;
 
+    logger.debug(`Browser ${identifier} not found, initializing new instance`);
     return this.retrieveOrInitialize(appBrowsers[identifier]);
   }
 
   /**
-   * init all browser when app start up
+   * Initialize all browsers when app starts up
    */
   initializeBrowsers() {
+    logger.info('Initializing all browsers');
     Object.values(appBrowsers).forEach((browser) => {
-      console.log('[BrowserManager] initialize browser:', browser.identifier);
+      logger.debug(`Initializing browser: ${browser.identifier}`);
       this.retrieveOrInitialize(browser);
     });
   }
@@ -123,15 +134,17 @@ export default class BrowserManager {
   // helper
 
   /**
-   * Retrieve or initialize
-   * @param options
+   * Retrieve existing browser or initialize a new one
+   * @param options Browser window options
    */
   private retrieveOrInitialize(options: BrowserWindowOpts) {
     let browser = this.browsers.get(options.identifier as AppBrowsersIdentifiers);
     if (browser) {
+      logger.debug(`Retrieved existing browser: ${options.identifier}`);
       return browser;
     }
 
+    logger.debug(`Creating new browser: ${options.identifier}`);
     browser = new Browser(options, this.app);
 
     this.browsers.set(options.identifier as AppBrowsersIdentifiers, browser);
