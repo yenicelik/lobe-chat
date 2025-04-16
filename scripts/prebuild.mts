@@ -28,7 +28,7 @@ const partialBuildPages = [
   {
     name: 'oauth',
     disabled: isDesktop,
-    paths: ['src/app/[variants]/oauth', 'src/app/(backend)/odic'],
+    paths: ['src/app/[variants]/oauth', 'src/app/(backend)/oidc'],
   },
   {
     name: 'api-webhooks',
