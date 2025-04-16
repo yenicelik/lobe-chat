@@ -166,6 +166,8 @@ export class MacOSMenu extends BaseMenuPlatform implements IMenuPlatform {
         label: t('help.title'),
         role: 'help',
         submenu: [
+          { accelerator: 'F12', label: t('dev.devTools'), role: 'toggleDevTools' },
+          { type: 'separator' },
           {
             click: async () => {
               await shell.openExternal('https://lobehub.com');
@@ -207,6 +209,18 @@ export class MacOSMenu extends BaseMenuPlatform implements IMenuPlatform {
               this.app.menuManager.rebuildAppMenu();
             },
             label: t('dev.refreshMenu'),
+          },
+          { type: 'separator' },
+          {
+            click: () => {
+              const userDataPath = app.getPath('userData');
+              console.log(`[Menu] Opening user data directory: ${userDataPath}`);
+              shell.openPath(userDataPath).catch((err) => {
+                console.error(`[Menu] Error opening path ${userDataPath}:`, err);
+                // Optionally show an error dialog to the user
+              });
+            },
+            label: '用户配置目录',
           },
           { type: 'separator' },
           {

@@ -23,10 +23,10 @@ const TitleBar = memo(() => {
       <div />
       <div>{/* TODO */}</div>
 
-      <div className={electronStylish.nodrag}>
+      <Flexbox className={electronStylish.nodrag} gap={8} horizontal>
         <UpdateNotification />
         <Sync />
-      </div>
+      </Flexbox>
     </Flexbox>
   );
 });

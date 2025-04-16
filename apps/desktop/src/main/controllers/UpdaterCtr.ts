@@ -1,20 +1,16 @@
-import type { App } from '@/core/App';
+import { createLogger } from '@/utils/logger';
 
-import { ipcClientEvent } from './index';
+import { ControllerModule, ipcClientEvent } from './index';
 
-export default class UpdaterService {
-  private app: App;
+const logger = createLogger('controllers:UpdaterCtr');
 
-  constructor(app: App) {
-    this.app = app;
-  }
-
+export default class UpdaterCtr extends ControllerModule {
   /**
    * 检查更新
    */
   @ipcClientEvent('checkUpdate')
   async checkForUpdates() {
-    console.log('[UpdaterSrv] Check for updates requested');
+    logger.info('Check for updates requested');
     await this.app.updaterManager.checkForUpdates();
   }
 
@@ -23,7 +19,7 @@ export default class UpdaterService {
    */
   @ipcClientEvent('downloadUpdate')
   async downloadUpdate() {
-    console.log('[UpdaterSrv] Download update requested');
+    logger.info('Download update requested');
     await this.app.updaterManager.downloadUpdate();
   }
 
@@ -32,7 +28,7 @@ export default class UpdaterService {
    */
   @ipcClientEvent('installNow')
   quitAndInstallUpdate() {
-    console.log('[UpdaterSrv] Quit and install update requested');
+    logger.info('Quit and install update requested');
     this.app.updaterManager.installNow();
   }
 
@@ -41,7 +37,7 @@ export default class UpdaterService {
    */
   @ipcClientEvent('installLater')
   installLater() {
-    console.log('[UpdaterSrv] Install later requested');
+    logger.info('Install later requested');
     this.app.updaterManager.installLater();
   }
 }
