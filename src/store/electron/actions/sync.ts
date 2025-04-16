@@ -2,6 +2,7 @@ import { RemoteServerConfig } from '@lobechat/electron-client-ipc';
 import useSWR, { SWRResponse, mutate } from 'swr';
 import type { StateCreator } from 'zustand/vanilla';
 
+import { INBOX_SESSION_ID } from '@/const/session';
 import { remoteServerService } from '@/services/electron/remoteServer';
 
 import { initialState } from '../initialState';
@@ -86,10 +87,13 @@ export const remoteSyncSlice: StateCreator<
   refreshUserData: async () => {
     const { getSessionStoreState } = await import('@/store/session');
     const { getChatStoreState } = await import('@/store/chat');
+    const { getUserStoreState } = await import('@/store/user');
 
     await getSessionStoreState().refreshSessions();
     await getChatStoreState().refreshMessages();
     await getChatStoreState().refreshTopic();
+    await getUserStoreState().refreshUserState();
+    getSessionStoreState().switchSession(INBOX_SESSION_ID);
   },
 
   useRemoteServerConfig: () =>

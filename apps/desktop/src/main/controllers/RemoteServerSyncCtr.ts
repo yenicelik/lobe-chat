@@ -60,8 +60,6 @@ export default class RemoteServerSyncCtr extends ControllerModule {
         // If remote server is not active, don't process the request
         if (!config.active || !config.remoteServerUrl) return null;
 
-        logger.debug('Processing request:', request.url);
-
         // Get access token
         const accessToken = await this.remoteServerConfigCtr.getAccessToken();
 

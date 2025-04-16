@@ -278,8 +278,6 @@ export function createHandler({
         // 处理错误
         devReq.on('error', (err) => {
           if (debug) logger.error(`Error forwarding request: ${err}`);
-          res.statusCode = 502;
-          res.end(`Bad Gateway: ${err.message}`);
         });
 
         // 传输请求体
