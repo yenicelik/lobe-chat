@@ -1,5 +1,5 @@
 export interface ElectronMainStore {
-  isRemoteServerActive?: boolean;
+  active?: boolean;
   locale: string;
   remoteServerUrl?: string;
   shortcuts: Record<string, string>;

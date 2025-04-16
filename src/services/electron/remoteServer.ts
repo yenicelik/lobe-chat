@@ -1,4 +1,4 @@
-import { dispatch } from '@lobechat/electron-client-ipc';
+import { RemoteServerConfig, dispatch } from '@lobechat/electron-client-ipc';
 
 class RemoteServerService {
   /**
@@ -11,10 +11,7 @@ class RemoteServerService {
   /**
    * 设置远程服务器配置
    */
-  setRemoteServerConfig = async (config: {
-    isRemoteServerActive: boolean;
-    remoteServerUrl: string;
-  }) => {
+  setRemoteServerConfig = async (config: RemoteServerConfig) => {
     return dispatch('setRemoteServerConfig', config);
   };
 

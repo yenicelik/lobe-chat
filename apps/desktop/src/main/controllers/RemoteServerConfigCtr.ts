@@ -23,13 +23,11 @@ export default class RemoteServerConfigCtr extends ControllerModule {
     const { storeManager } = this.app;
 
     const config = {
-      isRemoteServerActive: storeManager.get('isRemoteServerActive', false),
+      active: storeManager.get('active', false),
       remoteServerUrl: storeManager.get('remoteServerUrl', ''),
     };
 
-    logger.debug(
-      `Remote server config: active=${config.isRemoteServerActive}, url=${config.remoteServerUrl}`,
-    );
+    logger.debug(`Remote server config: active=${config.active}, url=${config.remoteServerUrl}`);
     return config;
   }
 
@@ -37,15 +35,15 @@ export default class RemoteServerConfigCtr extends ControllerModule {
    * Set remote server configuration
    */
   @ipcClientEvent('setRemoteServerConfig')
-  async setRemoteServerConfig(config: { isRemoteServerActive: boolean; remoteServerUrl: string }) {
+  async setRemoteServerConfig(config: { active: boolean; remoteServerUrl: string }) {
     logger.info(
-      `Setting remote server config: active=${config.isRemoteServerActive}, url=${config.remoteServerUrl}`,
+      `Setting remote server config: active=${config.active}, url=${config.remoteServerUrl}`,
     );
     const { storeManager } = this.app;
 
     // Save configuration
     storeManager.set('remoteServerUrl', config.remoteServerUrl);
-    storeManager.set('isRemoteServerActive', config.isRemoteServerActive);
+    storeManager.set('active', config.active);
 
     return true;
   }
@@ -60,7 +58,7 @@ export default class RemoteServerConfigCtr extends ControllerModule {
 
     // Clear instance configuration
     storeManager.delete('remoteServerUrl');
-    storeManager.set('isRemoteServerActive', false);
+    storeManager.set('active', false);
 
     // Clear tokens (if any)
     await this.clearTokens();
@@ -206,7 +204,7 @@ export default class RemoteServerConfigCtr extends ControllerModule {
       // 获取配置信息
       const config = await this.getRemoteServerConfig();
 
-      if (!config.remoteServerUrl || !config.isRemoteServerActive) {
+      if (!config.remoteServerUrl || !config.active) {
         throw new Error('远程服务器未激活');
       }
 
@@ -272,7 +270,7 @@ export default class RemoteServerConfigCtr extends ControllerModule {
       const config = await this.getRemoteServerConfig();
 
       await this.setRemoteServerConfig({
-        isRemoteServerActive: false,
+        active: false,
         remoteServerUrl: config.remoteServerUrl || '',
       });
 

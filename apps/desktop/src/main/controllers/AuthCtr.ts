@@ -3,12 +3,17 @@ import crypto from 'node:crypto';
 import querystring from 'node:querystring';
 import { URL } from 'node:url';
 
+import { createLogger } from '@/utils/logger';
+
 import RemoteServerConfigCtr from './RemoteServerConfigCtr';
 import { ControllerModule, ipcClientEvent } from './index';
 
+// Create logger
+const logger = createLogger('controllers:AuthCtr');
+
 /**
- * 认证控制器
- * 用于实现OAuth授权流程
+ * Authentication Controller
+ * Used to implement the OAuth authorization flow
  */
 export default class AuthCtr extends ControllerModule {
   /**
@@ -29,29 +34,33 @@ export default class AuthCtr extends ControllerModule {
   };
 
   /**
-   * 请求 OAuth 授权
+   * Request OAuth authorization
    */
   @ipcClientEvent('requestAuthorization')
   async requestAuthorization(serverUrl: string) {
+    logger.info(`Requesting OAuth authorization, server URL: ${serverUrl}`);
     try {
-      // 首先更新服务器URL配置
+      // First, update the server URL configuration
+      logger.debug('Setting remote server configuration');
       await this.remoteServerConfigCtr.setRemoteServerConfig({
-        isRemoteServerActive: false,
-        remoteServerUrl: serverUrl, // 授权成功后再设置为true
+        active: false,
+        remoteServerUrl: serverUrl, // Set to true after successful authorization
       });
 
-      // 生成 PKCE 参数
+      // Generate PKCE parameters
+      logger.debug('Generating PKCE parameters');
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       this.codeVerifier = codeVerifier;
 
-      // 生成状态参数，用于防止CSRF攻击
+      // Generate state parameter to prevent CSRF attacks
       this.authRequestState = crypto.randomBytes(16).toString('hex');
+      logger.debug(`Generated state parameter: ${this.authRequestState}`);
 
-      // 构造授权URL
+      // Construct authorization URL
       const authUrl = new URL('/oidc/auth', serverUrl);
 
-      // 添加查询参数
+      // Add query parameters
       authUrl.search = querystring.stringify({
         client_id: 'lobehub-desktop',
         code_challenge: codeChallenge,
@@ -63,115 +72,143 @@ export default class AuthCtr extends ControllerModule {
         state: this.authRequestState,
       });
 
-      // 在默认浏览器中打开授权URL
+      logger.info(`Constructed authorization URL: ${authUrl.toString()}`);
+
+      // Open authorization URL in the default browser
       await shell.openExternal(authUrl.toString());
+      logger.debug('Opening authorization URL in default browser');
 
       return { success: true };
     } catch (error) {
-      console.error('请求授权失败:', error);
+      logger.error('Authorization request failed:', error);
       return { error: error.message, success: false };
     }
   }
 
   /**
-   * 处理授权回调
-   * 当浏览器重定向到我们的自定义协议时调用此方法
+   * Handle authorization callback
+   * This method is called when the browser redirects to our custom protocol
    */
   async handleAuthCallback(callbackUrl: string) {
+    logger.info(`Handling authorization callback: ${callbackUrl}`);
     try {
       const url = new URL(callbackUrl);
       const params = new URLSearchParams(url.search);
 
-      // 获取授权码
+      // Get authorization code
       const code = params.get('code');
       const state = params.get('state');
+      logger.debug(`Got parameters from callback URL: code=${code}, state=${state}`);
 
-      // 验证状态参数，防止CSRF攻击
+      // Validate state parameter to prevent CSRF attacks
       if (state !== this.authRequestState) {
+        logger.error(
+          `Invalid state parameter: expected ${this.authRequestState}, received ${state}`,
+        );
         throw new Error('Invalid state parameter');
       }
+      logger.debug('State parameter validation passed');
 
       if (!code) {
+        logger.error('No authorization code received');
         throw new Error('No authorization code received');
       }
 
-      // 获取配置信息
+      // Get configuration information
       const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
+      logger.debug(`Getting remote server configuration: url=${config.remoteServerUrl}`);
 
       if (!config.remoteServerUrl) {
+        logger.error('Server URL not configured');
         throw new Error('No server URL configured');
       }
 
-      // 获取之前保存的code_verifier
+      // Get the previously saved code_verifier
       const codeVerifier = this.codeVerifier;
       if (!codeVerifier) {
+        logger.error('Code verifier not found');
         throw new Error('No code verifier found');
       }
+      logger.debug('Found code verifier');
 
-      // 交换授权码获取令牌
+      // Exchange authorization code for token
+      logger.debug('Starting to exchange authorization code for token');
       const result = await this.exchangeCodeForToken(config.remoteServerUrl, code, codeVerifier);
 
       if (result.success) {
-        // 通知渲染进程授权成功
+        logger.info('Authorization successful');
+        // Notify render process of successful authorization
         this.broadcastAuthorizationSuccessful();
       } else {
-        // 通知渲染进程授权失败
+        logger.warn(`Authorization failed: ${result.error || 'Unknown error'}`);
+        // Notify render process of failed authorization
         this.broadcastAuthorizationFailed(result.error || 'Unknown error');
       }
 
       return result;
     } catch (error) {
-      console.error('处理授权回调失败:', error);
+      logger.error('Handling authorization callback failed:', error);
 
-      // 通知渲染进程授权失败
+      // Notify render process of failed authorization
       this.broadcastAuthorizationFailed(error.message);
 
       return { error: error.message, success: false };
     } finally {
-      // 清除授权请求状态
+      // Clear authorization request state
+      logger.debug('Clearing authorization request state');
       this.authRequestState = null;
       this.codeVerifier = null;
     }
   }
 
   /**
-   * 刷新访问令牌
+   * Refresh access token
    */
   @ipcClientEvent('refreshAccessToken')
   async refreshAccessToken() {
+    logger.info('Starting to refresh access token');
     try {
-      // 检查是否已在刷新
+      // Check if already refreshing
       if (this.remoteServerConfigCtr.isTokenRefreshing()) {
+        logger.warn('Token refresh already in progress');
         return { error: 'Token refresh already in progress', success: false };
       }
 
-      // 标记为正在刷新
+      // Mark as refreshing
       this.remoteServerConfigCtr.setTokenRefreshing(true);
+      logger.debug('Marking as refreshing token');
 
-      // 获取配置信息
+      // Get configuration information
       const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
+      logger.debug(
+        `Getting remote server configuration: url=${config.remoteServerUrl}, active=${config.active}`,
+      );
 
-      if (!config.remoteServerUrl || !config.isRemoteServerActive) {
+      if (!config.remoteServerUrl || !config.active) {
+        logger.error('Remote server not active');
         throw new Error('Remote server not active');
       }
 
-      // 获取刷新令牌
+      // Get refresh token
       const refreshToken = await this.remoteServerConfigCtr.getRefreshToken();
       if (!refreshToken) {
+        logger.error('No refresh token available');
         throw new Error('No refresh token available');
       }
+      logger.debug('Successfully retrieved refresh token');
 
-      // 构造刷新请求
+      // Construct refresh request
       const tokenUrl = new URL('/oidc/token', config.remoteServerUrl);
 
-      // 构造请求体
+      // Construct request body
       const body = querystring.stringify({
         client_id: 'lobehub-desktop',
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
       });
 
-      // 发送请求
+      logger.debug(`Sending token refresh request to ${tokenUrl.toString()}`);
+      // Send request
       const response = await fetch(tokenUrl.toString(), {
         body,
         headers: {
@@ -181,91 +218,105 @@ export default class AuthCtr extends ControllerModule {
       });
 
       if (!response.ok) {
-        // 尝试解析错误响应
+        // Try parsing the error response
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `刷新令牌失败: ${response.status} ${response.statusText} ${
-            errorData.error_description || errorData.error || ''
-          }`,
-        );
+        const errorMessage = `Failed to refresh token: ${response.status} ${response.statusText} ${errorData.error_description || errorData.error || ''}`;
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // 解析响应
+      // Parse response
       const data = await response.json();
+      logger.debug('Successfully received token refresh response');
 
-      // 确保响应包含必要的字段
+      // Ensure response contains necessary fields
       if (!data.access_token) {
+        logger.error('Invalid token response: missing access_token');
         throw new Error('Invalid token response: missing required fields');
       }
 
-      // 保存新令牌
+      // Save new tokens
+      logger.debug('Starting to save new tokens');
       await this.remoteServerConfigCtr.saveTokens(
         data.access_token,
-        data.refresh_token || refreshToken, // 如果没有新的刷新令牌，使用旧的
+        data.refresh_token || refreshToken, // Use old refresh token if no new one is provided
       );
+      logger.info('Successfully refreshed and saved tokens');
 
-      // 通知渲染进程令牌已刷新
+      // Notify render process that token has been refreshed
       this.broadcastTokenRefreshed();
 
       return { success: true };
     } catch (error) {
-      console.error('刷新令牌失败:', error);
+      logger.error('Token refresh operation failed:', error);
 
-      // 刷新失败，清除令牌并禁用远程服务器
+      // Refresh failed, clear tokens and disable remote server
+      logger.warn('Refresh failed, clearing tokens and disabling remote server');
       await this.remoteServerConfigCtr.clearTokens();
+      const currentConfig = await this.remoteServerConfigCtr
+        .getRemoteServerConfig()
+        .catch(() => ({ remoteServerUrl: '' })); // Handle potential error getting config
       await this.remoteServerConfigCtr.setRemoteServerConfig({
-        isRemoteServerActive: false,
-        remoteServerUrl: await this.remoteServerConfigCtr
-          .getRemoteServerConfig()
-          .then((c) => c.remoteServerUrl || ''),
+        active: false,
+        remoteServerUrl: currentConfig.remoteServerUrl || '',
       });
 
-      // 通知渲染进程需要重新授权
+      // Notify render process that re-authorization is required
       this.broadcastAuthorizationRequired();
 
       return { error: error.message, success: false };
     } finally {
-      // 标记为不再刷新
+      // Mark as no longer refreshing
       this.remoteServerConfigCtr.setTokenRefreshing(false);
+      logger.debug('Marking as no longer refreshing token');
     }
   }
 
   /**
-   * 注册自定义协议处理
+   * Register custom protocol handler
    */
   private registerProtocolHandler() {
-    // Windows 和 Linux 上使用 app.setAsDefaultProtocolClient
+    logger.info('Registering custom protocol handler com.lobehub.desktop://');
+    // Use app.setAsDefaultProtocolClient on Windows and Linux
     app.setAsDefaultProtocolClient('com.lobehub.desktop');
 
-    // 注册自定义协议处理程序
+    // Register custom protocol handler
     if (process.platform === 'darwin') {
-      // 处理 macOS 上的 open-url 事件
+      // Handle open-url event on macOS
+      logger.debug('Registering open-url event handler for macOS');
       app.on('open-url', (event, url) => {
         event.preventDefault();
+        logger.info(`Received open-url event: ${url}`);
         this.handleAuthCallback(url);
       });
     } else {
-      // Windows 和 Linux 上通过 second-instance 事件处理协议回调
+      // Handle protocol callback via second-instance event on Windows and Linux
+      logger.debug('Registering second-instance event handler for Windows/Linux');
       app.on('second-instance', (event, commandLine) => {
-        // 从命令行参数中找到 URL
+        // Find the URL from command line arguments
         const url = commandLine.find((arg) => arg.startsWith('com.lobehub.desktop://'));
         if (url) {
+          logger.info(`Found URL from second-instance command line arguments: ${url}`);
           this.handleAuthCallback(url);
+        } else {
+          logger.warn('Protocol URL not found in second-instance command line arguments');
         }
       });
     }
 
-    console.log('已注册 com.lobehub.desktop:// 自定义协议处理');
+    logger.info('Registered com.lobehub.desktop:// custom protocol handler');
   }
 
   /**
-   * 交换授权码获取令牌
+   * Exchange authorization code for token
    */
   private async exchangeCodeForToken(serverUrl: string, code: string, codeVerifier: string) {
+    logger.info('Starting to exchange authorization code for token');
     try {
       const tokenUrl = new URL('/oidc/token', serverUrl);
+      logger.debug(`Constructed token exchange URL: ${tokenUrl.toString()}`);
 
-      // 构造请求体
+      // Construct request body
       const body = querystring.stringify({
         client_id: 'lobehub-desktop',
         code,
@@ -274,7 +325,8 @@ export default class AuthCtr extends ControllerModule {
         redirect_uri: 'com.lobehub.desktop://auth/callback',
       });
 
-      // 发送请求获取令牌
+      logger.debug('Sending token exchange request');
+      // Send request to get token
       const response = await fetch(tokenUrl.toString(), {
         body,
         headers: {
@@ -284,44 +336,48 @@ export default class AuthCtr extends ControllerModule {
       });
 
       if (!response.ok) {
-        // 尝试解析错误响应
+        // Try parsing the error response
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `获取令牌失败: ${response.status} ${response.statusText} ${
-            errorData.error_description || errorData.error || ''
-          }`,
-        );
+        const errorMessage = `Failed to get token: ${response.status} ${response.statusText} ${errorData.error_description || errorData.error || ''}`;
+        logger.error(errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // 解析响应
+      // Parse response
       const data = await response.json();
+      logger.debug('Successfully received token exchange response');
+      // console.log(data); // Keep original log for debugging, or remove/change to logger.debug as needed
 
-      console.log(data);
-      // 确保响应包含必要的字段
+      // Ensure response contains necessary fields
       if (!data.access_token || !data.refresh_token) {
+        logger.error('Invalid token response: missing access_token or refresh_token');
         throw new Error('Invalid token response: missing required fields');
       }
 
-      // 保存令牌
+      // Save tokens
+      logger.debug('Starting to save exchanged tokens');
       await this.remoteServerConfigCtr.saveTokens(data.access_token, data.refresh_token);
+      logger.info('Successfully saved exchanged tokens');
 
-      // 设置服务器为激活状态
+      // Set server to active state
+      logger.debug(`Setting remote server to active state: ${serverUrl}`);
       await this.remoteServerConfigCtr.setRemoteServerConfig({
-        isRemoteServerActive: true,
+        active: true,
         remoteServerUrl: serverUrl,
       });
 
       return { success: true };
     } catch (error) {
-      console.error('交换授权码失败:', error);
+      logger.error('Exchanging authorization code failed:', error);
       return { error: error.message, success: false };
     }
   }
 
   /**
-   * 广播令牌已刷新事件
+   * Broadcast token refreshed event
    */
   private broadcastTokenRefreshed() {
+    logger.debug('Broadcasting tokenRefreshed event to all windows');
     const allWindows = BrowserWindow.getAllWindows();
 
     for (const win of allWindows) {
@@ -332,9 +388,10 @@ export default class AuthCtr extends ControllerModule {
   }
 
   /**
-   * 广播授权成功事件
+   * Broadcast authorization successful event
    */
   private broadcastAuthorizationSuccessful() {
+    logger.debug('Broadcasting authorizationSuccessful event to all windows');
     const allWindows = BrowserWindow.getAllWindows();
 
     for (const win of allWindows) {
@@ -345,9 +402,10 @@ export default class AuthCtr extends ControllerModule {
   }
 
   /**
-   * 广播授权失败事件
+   * Broadcast authorization failed event
    */
   private broadcastAuthorizationFailed(error: string) {
+    logger.debug(`Broadcasting authorizationFailed event to all windows, error: ${error}`);
     const allWindows = BrowserWindow.getAllWindows();
 
     for (const win of allWindows) {
@@ -358,9 +416,10 @@ export default class AuthCtr extends ControllerModule {
   }
 
   /**
-   * 广播需要重新授权事件
+   * Broadcast authorization required event
    */
   private broadcastAuthorizationRequired() {
+    logger.debug('Broadcasting authorizationRequired event to all windows');
     const allWindows = BrowserWindow.getAllWindows();
 
     for (const win of allWindows) {
@@ -371,32 +430,38 @@ export default class AuthCtr extends ControllerModule {
   }
 
   /**
-   * 生成 PKCE 的 codeVerifier
+   * Generate PKCE codeVerifier
    */
   private generateCodeVerifier(): string {
-    // 生成至少 43 字符的随机字符串
-    return crypto
+    logger.debug('Generating PKCE code verifier');
+    // Generate a random string of at least 43 characters
+    const verifier = crypto
       .randomBytes(32)
       .toString('base64')
       .replaceAll('+', '-')
       .replaceAll('/', '_')
       .replace(/=+$/, '');
+    logger.debug('Generated code verifier (partial): ' + verifier.slice(0, 10) + '...'); // Avoid logging full sensitive info
+    return verifier;
   }
 
   /**
-   * 根据 codeVerifier 生成 codeChallenge (S256 方法)
+   * Generate codeChallenge from codeVerifier (S256 method)
    */
   private async generateCodeChallenge(codeVerifier: string): Promise<string> {
-    // 使用 SHA-256 哈希 codeVerifier
+    logger.debug('Generating PKCE code challenge (S256)');
+    // Hash codeVerifier using SHA-256
     const encoder = new TextEncoder();
     const data = encoder.encode(codeVerifier);
     const digest = await crypto.subtle.digest('SHA-256', data);
 
-    // 将哈希结果转换为 base64url 编码
-    return Buffer.from(digest)
+    // Convert hash result to base64url encoding
+    const challenge = Buffer.from(digest)
       .toString('base64')
       .replaceAll('+', '-')
       .replaceAll('/', '_')
       .replace(/=+$/, '');
+    logger.debug('Generated code challenge (partial): ' + challenge.slice(0, 10) + '...'); // Avoid logging full sensitive info
+    return challenge;
   }
 }

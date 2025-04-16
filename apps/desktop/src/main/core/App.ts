@@ -77,6 +77,10 @@ export class App {
     // register the schema to interceptor url
     // it should register before app ready
     this.registerNextHandler();
+
+    // 统一处理 before-quit 事件
+    app.on('before-quit', this.handleBeforeQuit);
+
     logger.info('App initialization completed');
   }
 
@@ -112,14 +116,6 @@ export class App {
 
     // Set global application exit state
     this.isQuiting = false;
-
-    // Listen for before-quit event, set exit flag
-    app.on('before-quit', () => {
-      logger.info('Application is about to quit');
-      this.isQuiting = true;
-      // Unregister all shortcuts before application exits
-      this.shortcutManager.unregisterAll();
-    });
 
     app.on('window-all-closed', () => {
       if (windows()) {
@@ -240,7 +236,6 @@ export class App {
    * Unregister all custom request handlers
    */
   unregisterAllRequestHandlers = () => {
-    logger.debug(`Unregistering ${this.customHandlerUnregisterFns.length} custom request handlers`);
     this.customHandlerUnregisterFns.forEach((unregister) => unregister());
     this.customHandlerUnregisterFns = [];
   };
@@ -318,9 +313,6 @@ export class App {
     } else {
       logger.warn('Custom request handler registration is not available');
     }
-
-    // Unregister all custom handlers before application exits
-    app.on('before-quit', this.unregisterAllRequestHandlers);
   }
 
   private initializeIPCEvents() {
@@ -356,4 +348,12 @@ export class App {
 
     this.ipcServer = new ElectronIPCServer(ipcServerEvents);
   }
+
+  // 新增 before-quit 处理函数
+  private handleBeforeQuit = () => {
+    this.isQuiting = true; // 首先设置标志
+
+    // 执行清理操作
+    this.unregisterAllRequestHandlers();
+  };
 }

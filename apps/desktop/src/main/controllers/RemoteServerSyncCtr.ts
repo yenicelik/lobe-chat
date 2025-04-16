@@ -4,6 +4,8 @@ import { CustomRequestHandler } from '@/utils/next-electron-rsc';
 import RemoteServerConfigCtr from './RemoteServerConfigCtr';
 import { ControllerModule } from './index';
 
+const trpcProxyPath = ['/trpc/lambda', '/trpc/tools', '/trpc/async'];
+
 // Create logger
 const logger = createLogger('controllers:RemoteServerSyncCtr');
 
@@ -29,13 +31,13 @@ export default class RemoteServerSyncCtr extends ControllerModule {
    */
   afterAppReady() {
     logger.info('Initializing remote server sync controller');
-    this.registerTrpcRequestHandler();
+    this.registerApiRequestHandler();
   }
 
   /**
    * Register tRPC request handler
    */
-  registerTrpcRequestHandler() {
+  registerApiRequestHandler() {
     // If already registered, unregister the old handler first
     if (this.unregisterRequestHandler) {
       this.unregisterRequestHandler();
@@ -47,20 +49,18 @@ export default class RemoteServerSyncCtr extends ControllerModule {
     // Create request handler
     const handler: CustomRequestHandler = async (request) => {
       try {
-        console.log('Processing request:', request.url);
         // Check if it's a tRPC request
-        if (!request.url.includes('/trpc/lambda')) {
-          return null; // Not a tRPC request, let other handlers process it
-        }
+        const isApiRequest = trpcProxyPath.some((path) => request.url.includes(path));
+
+        if (!isApiRequest) return null; // Not an Api request, let other handlers process it
 
         // Get remote server configuration
         const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
 
         // If remote server is not active, don't process the request
-        if (!config.isRemoteServerActive || !config.remoteServerUrl) {
-          logger.debug('Remote server not active, not intercepting tRPC request');
-          return null;
-        }
+        if (!config.active || !config.remoteServerUrl) return null;
+
+        logger.debug('Processing request:', request.url);
 
         // Get access token
         const accessToken = await this.remoteServerConfigCtr.getAccessToken();
@@ -161,7 +161,7 @@ export default class RemoteServerSyncCtr extends ControllerModule {
 
       // Check if remote server is active
       const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
-      if (!config.isRemoteServerActive) {
+      if (!config.active) {
         logger.debug('Remote server not active, not refreshing token');
         return false;
       }
