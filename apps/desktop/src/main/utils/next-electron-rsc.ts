@@ -214,15 +214,15 @@ export function createHandler({
     handler = app.getRequestHandler();
     preparePromise = app.prepare();
   } else {
-    logger.info('Starting in development mode');
+    logger.debug('Starting in development mode');
   }
 
   // 通用的请求处理函数 - 开发和生产环境共用
-  async function handleRequest(
+  const handleRequest = async (
     request: Request,
     session: Session,
     socket: Socket,
-  ): Promise<Response> {
+  ): Promise<Response> => {
     try {
       // 先尝试使用自定义处理器处理请求
       for (const customHandler of customHandlers) {
@@ -339,13 +339,10 @@ export function createHandler({
       if (debug) logger.error(`Error handling request: ${e}`);
       return new Response(e.message, { status: 500 });
     }
-  }
+  };
 
   // 创建拦截器函数
-  function createInterceptor({ session, enabled = true }: { enabled?: boolean; session: Session }) {
-    // if not enable intercept, just return
-    if (!enabled) return function stopIntercept() {};
-
+  const createInterceptor = ({ session }: { session: Session }) => {
     assert(session, 'Session is required');
     logger.debug(
       `Creating interceptor with session in ${isDev ? 'development' : 'production'} mode`,
@@ -382,7 +379,7 @@ export function createHandler({
       process.off('SIGINT', () => closeSocket);
       closeSocket();
     };
-  }
+  };
 
   return { createInterceptor, registerCustomHandler };
 }

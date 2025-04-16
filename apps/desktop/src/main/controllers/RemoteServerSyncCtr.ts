@@ -2,7 +2,7 @@ import { createLogger } from '@/utils/logger';
 import { CustomRequestHandler } from '@/utils/next-electron-rsc';
 
 import RemoteServerConfigCtr from './RemoteServerConfigCtr';
-import { ControllerModule, ipcClientEvent } from './index';
+import { ControllerModule } from './index';
 
 // Create logger
 const logger = createLogger('controllers:RemoteServerSyncCtr');
@@ -173,82 +173,6 @@ export default class RemoteServerSyncCtr extends ControllerModule {
     } catch (error) {
       logger.error('Error refreshing token:', error);
       return false;
-    }
-  }
-
-  /**
-   * Stop sync service
-   */
-  @ipcClientEvent('stopRemoteSync')
-  async stopRemoteSync() {
-    logger.info('Stopping remote sync service');
-
-    // Unregister request handler
-    if (this.unregisterRequestHandler) {
-      this.unregisterRequestHandler();
-      this.unregisterRequestHandler = undefined;
-    }
-
-    return true;
-  }
-
-  /**
-   * Start sync service
-   */
-  @ipcClientEvent('startRemoteSync')
-  async startRemoteSync() {
-    logger.info('Starting remote sync service');
-
-    // Register tRPC request handler
-    this.registerTrpcRequestHandler();
-
-    return true;
-  }
-
-  /**
-   * Test tRPC interception functionality
-   */
-  @ipcClientEvent('testTrpcInterception')
-  async testTrpcInterception() {
-    try {
-      logger.info('Testing tRPC interception functionality');
-
-      // Get remote server configuration
-      const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
-
-      if (!config.isRemoteServerActive || !config.remoteServerUrl) {
-        return {
-          error: 'Remote server not active',
-          success: false,
-        };
-      }
-
-      // Get access token
-      const token = await this.remoteServerConfigCtr.getAccessToken();
-
-      if (!token) {
-        return {
-          error: 'Unable to get access token',
-          success: false,
-        };
-      }
-
-      // Return configuration information for verification
-      return {
-        config: {
-          isRemoteServerActive: config.isRemoteServerActive,
-          remoteServerUrl: config.remoteServerUrl,
-        },
-        success: true,
-        tokenAvailable: !!token,
-        tokenPreview: token.slice(0, 10) + '...',
-      };
-    } catch (error) {
-      logger.error('Error testing tRPC interception functionality:', error);
-      return {
-        error: error.message,
-        success: false,
-      };
     }
   }
 }
