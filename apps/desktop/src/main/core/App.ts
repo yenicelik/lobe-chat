@@ -8,18 +8,16 @@ import { isDev } from '@/const/env';
 import { IControlModule } from '@/controllers';
 import { IServiceModule } from '@/services';
 import { createLogger } from '@/utils/logger';
-import { createHandler } from '@/utils/next-electron-rsc';
+import { CustomRequestHandler, createHandler } from '@/utils/next-electron-rsc';
 
 import BrowserManager from './BrowserManager';
 import { I18nManager } from './I18nManager';
 import { IoCContainer } from './IoCContainer';
 import MenuManager from './MenuManager';
-import { NetworkInterceptor } from './NetworkInterceptor';
 import { ShortcutManager } from './ShortcutManager';
 import { StoreManager } from './StoreManager';
 import { UpdaterManager } from './UpdaterManager';
 
-// Create logger
 const logger = createLogger('core:App');
 
 export type IPCEventMap = Map<string, { controller: any; methodName: string }>;
@@ -38,7 +36,6 @@ export class App {
   storeManager: StoreManager;
   updaterManager: UpdaterManager;
   shortcutManager: ShortcutManager;
-  networkInterceptor: NetworkInterceptor;
 
   /**
    * whether app is in quiting
@@ -46,6 +43,9 @@ export class App {
   isQuiting: boolean = false;
 
   constructor() {
+    logger.info('----------------------------------------------');
+    logger.info('Starting LobeHub...');
+
     logger.debug('Initializing App');
     // Initialize store manager
     this.storeManager = new StoreManager(this);
@@ -73,7 +73,6 @@ export class App {
     this.menuManager = new MenuManager(this);
     this.updaterManager = new UpdaterManager(this);
     this.shortcutManager = new ShortcutManager(this);
-    this.networkInterceptor = new NetworkInterceptor(this);
 
     // register the schema to interceptor url
     // it should register before app ready
@@ -98,9 +97,6 @@ export class App {
 
     // Initialize app
     await this.makeAppReady();
-
-    // Initialize network interceptor
-    this.networkInterceptor.initialize();
 
     // Initialize i18n. Note: app.getLocale() must be called after app.whenReady() to get the correct value
     await this.i18n.init();
@@ -204,7 +200,50 @@ export class App {
   /**
    * use in next router interceptor in prod browser render
    */
-  nextInterceptor: (params: { enabled?: boolean; session: Session }) => () => void;
+  nextInterceptor: (params: { session: Session }) => () => void;
+
+  /**
+   * Collection of unregister functions for custom request handlers
+   */
+  private customHandlerUnregisterFns: Array<() => void> = [];
+
+  /**
+   * Function to register custom request handler
+   */
+  private registerCustomHandlerFn?: (handler: CustomRequestHandler) => () => void;
+
+  /**
+   * Register custom request handler
+   * @param handler Custom request handler function
+   * @returns Function to unregister the handler
+   */
+  registerRequestHandler = (handler: CustomRequestHandler): (() => void) => {
+    if (!this.registerCustomHandlerFn) {
+      logger.warn('Custom request handler registration is not available');
+      return () => {};
+    }
+
+    logger.debug('Registering custom request handler');
+    const unregisterFn = this.registerCustomHandlerFn(handler);
+    this.customHandlerUnregisterFns.push(unregisterFn);
+
+    return () => {
+      unregisterFn();
+      const index = this.customHandlerUnregisterFns.indexOf(unregisterFn);
+      if (index !== -1) {
+        this.customHandlerUnregisterFns.splice(index, 1);
+      }
+    };
+  };
+
+  /**
+   * Unregister all custom request handlers
+   */
+  unregisterAllRequestHandlers = () => {
+    logger.debug(`Unregistering ${this.customHandlerUnregisterFns.length} custom request handlers`);
+    this.customHandlerUnregisterFns.forEach((unregister) => unregister());
+    this.customHandlerUnregisterFns = [];
+  };
 
   private addController = (ControllerClass: IControlModule) => {
     const controller = new ControllerClass(this);
@@ -258,11 +297,30 @@ export class App {
       protocol,
       standaloneDir: nextStandaloneDir,
     });
-    logger.info(
-      `Server Debugging Enabled, ${this.nextServerUrl} will be intercepted to ${nextStandaloneDir}`,
-    );
+
+    // Log output based on development or production mode
+    if (isDev) {
+      logger.info(
+        `Development mode: Custom request handler enabled, but Next.js interception disabled`,
+      );
+    } else {
+      logger.info(
+        `Production mode: ${this.nextServerUrl} will be intercepted to ${nextStandaloneDir}`,
+      );
+    }
 
     this.nextInterceptor = handler.createInterceptor;
+
+    // Save custom handler registration function
+    if (handler.registerCustomHandler) {
+      this.registerCustomHandlerFn = handler.registerCustomHandler;
+      logger.debug('Custom request handler registration is available');
+    } else {
+      logger.warn('Custom request handler registration is not available');
+    }
+
+    // Unregister all custom handlers before application exits
+    app.on('before-quit', this.unregisterAllRequestHandlers);
   }
 
   private initializeIPCEvents() {
@@ -281,7 +339,7 @@ export class App {
       });
     });
 
-    // 批量注册 controller 中的 server event 事件 供 next server 端消费
+    // Batch register server events from controllers for next server consumption
     const ipcServerEvents = {} as ElectronIPCEventHandler;
 
     this.ipcServerEventMap.forEach((eventInfo, key) => {

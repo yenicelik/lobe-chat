@@ -4,7 +4,6 @@ import type { Protocol, Session } from 'electron';
 import type { NextConfig } from 'next';
 import type NextNodeServer from 'next/dist/server/next-server';
 import assert from 'node:assert';
-import fs from 'node:fs';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import { Socket } from 'node:net';
 import path from 'node:path';
@@ -13,6 +12,13 @@ import resolve from 'resolve';
 import { parse as parseCookie, splitCookiesString } from 'set-cookie-parser';
 
 import { isDev } from '@/const/env';
+import { createLogger } from '@/utils/logger';
+
+// 创建日志记录器
+const logger = createLogger('utils:next-electron-rsc');
+
+// 定义自定义处理器类型
+export type CustomRequestHandler = (request: Request) => Promise<Response | null | undefined>;
 
 async function createRequest({
   socket,
@@ -157,30 +163,22 @@ export function createHandler({
   assert(standaloneDir, 'standaloneDir is required');
   assert(protocol, 'protocol is required');
 
-  if (isDev) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const createInterceptor = (_: { enabled?: boolean; session: Session }) => {
-      return function stopIntercept() {};
+  // 存储自定义请求处理器的数组
+  const customHandlers: CustomRequestHandler[] = [];
+
+  // 注册自定义请求处理器的方法 - 在开发和生产环境中都提供此功能
+  function registerCustomHandler(handler: CustomRequestHandler) {
+    logger.debug('Registering custom request handler');
+    customHandlers.push(handler);
+    return () => {
+      const index = customHandlers.indexOf(handler);
+      if (index !== -1) {
+        logger.debug('Unregistering custom request handler');
+        customHandlers.splice(index, 1);
+      }
     };
-    return { createInterceptor };
   }
-
-  assert(fs.existsSync(standaloneDir), 'standaloneDir does not exist');
-  const next = require(resolve.sync('next', { basedir: standaloneDir }));
-
-  // @see https://github.com/vercel/next.js/issues/64031#issuecomment-2078708340
-  const config = require(path.join(standaloneDir, '.next', 'required-server-files.json'))
-    .config as NextConfig;
-  process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(config);
-
-  const app = next({
-    dev: false,
-    dir: standaloneDir,
-  }) as NextNodeServer;
-
-  const handler = app.getRequestHandler();
-
-  const preparePromise = app.prepare();
+  let registerProtocolHandle = false;
 
   protocol.registerSchemesAsPrivileged([
     {
@@ -192,14 +190,166 @@ export function createHandler({
       scheme: 'http',
     },
   ]);
+  logger.debug('Registered HTTP scheme as privileged');
 
-  let registerProtocolHandle = false;
+  // 初始化 Next.js 应用（仅在生产环境中使用）
+  let app: NextNodeServer | null = null;
+  let handler: any = null;
+  let preparePromise: Promise<void> | null = null;
 
-  function createInterceptor({ session, enabled }: { enabled?: boolean; session: Session }) {
+  if (!isDev) {
+    logger.info('Initializing Next.js app for production');
+    const next = require(resolve.sync('next', { basedir: standaloneDir }));
+
+    // @see https://github.com/vercel/next.js/issues/64031#issuecomment-2078708340
+    const config = require(path.join(standaloneDir, '.next', 'required-server-files.json'))
+      .config as NextConfig;
+    process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(config);
+
+    app = next({
+      dev: false,
+      dir: standaloneDir,
+    }) as NextNodeServer;
+
+    handler = app.getRequestHandler();
+    preparePromise = app.prepare();
+  } else {
+    logger.info('Starting in development mode');
+  }
+
+  // 通用的请求处理函数 - 开发和生产环境共用
+  async function handleRequest(
+    request: Request,
+    session: Session,
+    socket: Socket,
+  ): Promise<Response> {
+    try {
+      // 先尝试使用自定义处理器处理请求
+      for (const customHandler of customHandlers) {
+        try {
+          const response = await customHandler(request);
+          if (response) {
+            if (debug) logger.debug(`Custom handler processed: ${request.url}`);
+            return response;
+          }
+        } catch (error) {
+          if (debug) logger.error(`Custom handler error: ${error}`);
+          // 继续尝试下一个处理器
+        }
+      }
+
+      // 创建 Node.js 请求对象
+      const req = await createRequest({ request, session, socket });
+      // 创建可读取响应的 Response 对象
+      const res = new ReadableServerResponse(req);
+
+      if (isDev) {
+        // 开发环境：转发请求到开发服务器
+        if (debug) logger.debug(`Forwarding request to dev server: ${request.url}`);
+
+        // 修改 URL 以指向开发服务器
+        const devUrl = new URL(req.url, localhostUrl);
+
+        // 使用 node:http 模块发送请求到开发服务器
+        const http = require('node:http');
+        const devReq = http.request(
+          {
+            headers: req.headers,
+            hostname: devUrl.hostname,
+            method: req.method,
+            path: devUrl.pathname + (devUrl.search || ''),
+            port: devUrl.port,
+          },
+          (devRes) => {
+            // 设置响应状态码和头部
+            res.statusCode = devRes.statusCode;
+            res.statusMessage = devRes.statusMessage;
+
+            // 复制响应头
+            Object.keys(devRes.headers).forEach((key) => {
+              res.setHeader(key, devRes.headers[key]);
+            });
+
+            // 流式传输响应内容
+            devRes.pipe(res);
+          },
+        );
+
+        // 处理错误
+        devReq.on('error', (err) => {
+          if (debug) logger.error(`Error forwarding request: ${err}`);
+          res.statusCode = 502;
+          res.end(`Bad Gateway: ${err.message}`);
+        });
+
+        // 传输请求体
+        req.pipe(devReq);
+      } else {
+        // 生产环境：使用 Next.js 处理请求
+        if (debug) logger.debug(`Processing with Next.js handler: ${request.url}`);
+
+        // 确保 Next.js 已准备就绪
+        if (preparePromise) await preparePromise;
+
+        const url = parse(req.url, true);
+        handler(req, res, url);
+      }
+
+      // 获取 Response 对象
+      const response = await res.getResponse();
+
+      // 处理 cookies（两种环境通用处理）
+      try {
+        const cookies = parseCookie(
+          response.headers.getSetCookie().reduce((r, c) => {
+            return [...r, ...splitCookiesString(c)];
+          }, []),
+        );
+
+        for (const cookie of cookies) {
+          const expires = cookie.expires
+            ? cookie.expires.getTime()
+            : cookie.maxAge
+              ? Date.now() + cookie.maxAge * 1000
+              : undefined;
+
+          if (expires && expires < Date.now()) {
+            await session.cookies.remove(request.url, cookie.name);
+            continue;
+          }
+
+          await session.cookies.set({
+            domain: cookie.domain,
+            expirationDate: expires,
+            httpOnly: cookie.httpOnly,
+            name: cookie.name,
+            path: cookie.path,
+            secure: cookie.secure,
+            url: request.url,
+            value: cookie.value,
+          } as any);
+        }
+      } catch (e) {
+        logger.error('Failed to set cookies', e);
+      }
+
+      if (debug) logger.debug(`Request processed: ${request.url}, status: ${response.status}`);
+      return response;
+    } catch (e) {
+      if (debug) logger.error(`Error handling request: ${e}`);
+      return new Response(e.message, { status: 500 });
+    }
+  }
+
+  // 创建拦截器函数
+  function createInterceptor({ session, enabled = true }: { enabled?: boolean; session: Session }) {
     // if not enable intercept, just return
     if (!enabled) return function stopIntercept() {};
 
     assert(session, 'Session is required');
+    logger.debug(
+      `Creating interceptor with session in ${isDev ? 'development' : 'production'} mode`,
+    );
 
     const socket = new Socket();
 
@@ -209,69 +359,22 @@ export function createHandler({
     process.on('SIGINT', () => closeSocket);
 
     if (!registerProtocolHandle) {
+      logger.debug(
+        `Registering HTTP protocol handler in ${isDev ? 'development' : 'production'} mode`,
+      );
       protocol.handle('http', async (request) => {
-        try {
+        if (!isDev) {
           assert(request.url.startsWith(localhostUrl), 'External HTTP not supported, use HTTPS');
-
-          await preparePromise;
-
-          const req = await createRequest({ request, session, socket });
-          const res = new ReadableServerResponse(req);
-          const url = parse(req.url, true);
-
-          handler(req, res, url);
-
-          const response = await res.getResponse();
-
-          try {
-            // @see https://github.com/electron/electron/issues/30717
-            // @see https://github.com/electron/electron/issues/39525
-            const cookies = parseCookie(
-              response.headers.getSetCookie().reduce((r, c) => {
-                // @see https://github.com/nfriedly/set-cookie-parser?tab=readme-ov-file#usage-in-react-native-and-with-some-other-fetch-implementations
-                return [...r, ...splitCookiesString(c)];
-              }, []),
-            );
-
-            for (const cookie of cookies) {
-              const expires = cookie.expires
-                ? cookie.expires.getTime()
-                : cookie.maxAge
-                  ? Date.now() + cookie.maxAge * 1000
-                  : undefined;
-
-              if (expires < Date.now()) {
-                await session.cookies.remove(request.url, cookie.name);
-                continue;
-              }
-
-              await session.cookies.set({
-                domain: cookie.domain,
-                expirationDate: expires,
-                httpOnly: cookie.httpOnly,
-                name: cookie.name,
-                path: cookie.path,
-                secure: cookie.secure,
-                url: request.url,
-                value: cookie.value,
-              } as any);
-            }
-          } catch (e) {
-            throw new Error('Failed to set cookies', { cause: e });
-          }
-
-          if (debug) console.log('[NEXT] Handler', request.url, response.status);
-          return response;
-        } catch (e) {
-          if (debug) console.log('[NEXT] Error', e);
-          return new Response(e.message, { status: 500 });
         }
+
+        return handleRequest(request, session, socket);
       });
       registerProtocolHandle = true;
     }
 
     return function stopIntercept() {
       if (registerProtocolHandle) {
+        logger.debug('Unregistering HTTP protocol handler');
         protocol.unhandle('http');
         registerProtocolHandle = false;
       }
@@ -281,5 +384,5 @@ export function createHandler({
     };
   }
 
-  return { createInterceptor };
+  return { createInterceptor, registerCustomHandler };
 }

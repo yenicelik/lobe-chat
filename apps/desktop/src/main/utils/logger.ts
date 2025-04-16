@@ -17,11 +17,15 @@ export const createLogger = (namespace: string) => {
       debugLogger(message, ...args);
     },
     error: (message, ...args) => {
-      electronLog.error(message, ...args);
+      if (process.env.NODE_ENV === 'production') {
+        electronLog.error(message, ...args);
+      }
       debugLogger(`ERROR: ${message}`, ...args);
     },
     info: (message, ...args) => {
-      electronLog.info(message, ...args);
+      if (process.env.NODE_ENV === 'production') {
+        electronLog.info(message, ...args);
+      }
       debugLogger(`INFO: ${message}`, ...args);
     },
     verbose: (message, ...args) => {
@@ -31,7 +35,9 @@ export const createLogger = (namespace: string) => {
       }
     },
     warn: (message, ...args) => {
-      electronLog.warn(message, ...args);
+      if (process.env.NODE_ENV === 'production') {
+        electronLog.warn(message, ...args);
+      }
       debugLogger(`WARN: ${message}`, ...args);
     },
   };

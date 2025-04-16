@@ -2,7 +2,6 @@ import { MainBroadcastEventKey, MainBroadcastParams } from '@lobechat/electron-c
 import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain } from 'electron';
 import { join } from 'node:path';
 
-import { isDev } from '@/const/env';
 import { createLogger } from '@/utils/logger';
 
 import { preloadDir, resourcesDir } from '../const/dir';
@@ -176,7 +175,6 @@ export default class Browser {
     this._browserWindow = browserWindow;
 
     this.stopInterceptHandler = this.app.nextInterceptor({
-      enabled: !isDev,
       session: browserWindow.webContents.session,
     });
 

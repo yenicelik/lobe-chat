@@ -1,4 +1,6 @@
 import { safeStorage } from 'electron';
+import querystring from 'node:querystring';
+import { URL } from 'node:url';
 
 import { createLogger } from '@/utils/logger';
 
@@ -181,5 +183,103 @@ export default class RemoteServerConfigCtr extends ControllerModule {
   setTokenRefreshing(status: boolean) {
     logger.debug(`Setting token refresh status: ${status}`);
     this.isRefreshing = status;
+  }
+
+  /**
+   * 刷新访问令牌
+   * 使用存储的刷新令牌获取新的访问令牌
+   */
+  @ipcClientEvent('refreshAccessToken')
+  async refreshAccessToken() {
+    try {
+      logger.info('刷新访问令牌');
+
+      // 检查是否已在刷新
+      if (this.isTokenRefreshing()) {
+        logger.warn('令牌刷新已在进行中');
+        return { error: '令牌刷新已在进行中', success: false };
+      }
+
+      // 标记为正在刷新
+      this.setTokenRefreshing(true);
+
+      // 获取配置信息
+      const config = await this.getRemoteServerConfig();
+
+      if (!config.remoteServerUrl || !config.isRemoteServerActive) {
+        throw new Error('远程服务器未激活');
+      }
+
+      // 获取刷新令牌
+      const refreshToken = await this.getRefreshToken();
+      if (!refreshToken) {
+        throw new Error('没有可用的刷新令牌');
+      }
+
+      // 构造刷新请求
+      const tokenUrl = new URL('/oidc/token', config.remoteServerUrl);
+
+      // 构造请求体
+      const body = querystring.stringify({
+        client_id: 'lobehub-desktop',
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      });
+
+      logger.debug('发送令牌刷新请求');
+
+      // 发送请求
+      const response = await fetch(tokenUrl.toString(), {
+        body,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        // 尝试解析错误响应
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `刷新令牌失败: ${response.status} ${response.statusText} ${
+            errorData.error_description || errorData.error || ''
+          }`,
+        );
+      }
+
+      // 解析响应
+      const data = await response.json();
+
+      // 确保响应包含必要的字段
+      if (!data.access_token) {
+        throw new Error('无效的令牌响应: 缺少必需字段');
+      }
+
+      logger.info('成功获取新的访问令牌');
+
+      // 保存新令牌
+      await this.saveTokens(
+        data.access_token,
+        data.refresh_token || refreshToken, // 如果没有新的刷新令牌，使用旧的
+      );
+
+      return { success: true };
+    } catch (error) {
+      logger.error('刷新令牌失败:', error);
+
+      // 刷新失败，清除令牌并禁用远程服务器
+      await this.clearTokens();
+      const config = await this.getRemoteServerConfig();
+
+      await this.setRemoteServerConfig({
+        isRemoteServerActive: false,
+        remoteServerUrl: config.remoteServerUrl || '',
+      });
+
+      return { error: error.message, success: false };
+    } finally {
+      // 标记为不再刷新
+      this.setTokenRefreshing(false);
+    }
   }
 }
