@@ -1,4 +1,4 @@
-import { router } from '@/libs/trpc';
+import { router } from '@/libs/trpc/lambda';
 
 import { pgTableRouter } from './pgTable';
 

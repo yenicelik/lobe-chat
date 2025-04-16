@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import { DESKTOP_USER_ID } from '@/const/desktop';
 import { TableViewerRepo } from '@/database/repositories/tableViewer';
-import { publicProcedure, router } from '@/libs/trpc';
-import { serverDatabase } from '@/libs/trpc/lambda';
+import { publicProcedure, router } from '@/libs/trpc/lambda';
+import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 
 const pgTableProcedure = publicProcedure.use(serverDatabase).use(async ({ ctx, next }) => {
   return next({
